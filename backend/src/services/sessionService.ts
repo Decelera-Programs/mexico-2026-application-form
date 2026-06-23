@@ -150,3 +150,35 @@ export async function patchSessionAnswer(sessionId: string, stepId: string, answ
     [stepId, JSON.stringify(answer), sessionId]
   );
 }
+
+export async function bulkPatchAnswers(
+  sessionId: string,
+  answers: Record<string, unknown>,
+  currentBlockId: string
+): Promise<void> {
+  await pool.query(
+    `UPDATE application_sessions
+     SET answers         = answers || $1::jsonb,
+         current_step_id = $2,
+         updated_at      = NOW()
+     WHERE id = $3`,
+    [JSON.stringify(answers), currentBlockId, sessionId]
+  );
+}
+
+export async function completeSession(
+  sessionId: string,
+  answers: Record<string, unknown>,
+  hardStop: string | null
+): Promise<void> {
+  await pool.query(
+    `UPDATE application_sessions
+     SET answers         = answers || $1::jsonb,
+         current_step_id = 'complete',
+         status          = 'completed',
+         hard_stop       = $2,
+         updated_at      = NOW()
+     WHERE id = $3`,
+    [JSON.stringify(answers), hardStop, sessionId]
+  );
+}

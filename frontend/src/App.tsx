@@ -1,960 +1,796 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { FlowStep, ApplicationSession } from '../../shared/types';
-import { startSession, submitAnswer, correctAnswer, getFlowStep, restartSession, chatMessage, chatFormAnswer } from './hooks/useApi';
-import { ChatBubble, TypingIndicator } from './components/ChatBubble';
+import { createSession, loadSession, saveDraft, submitApplication } from './hooks/useApi';
 import { Confetti } from './components/Confetti';
-import { StepInput } from './components/StepInput';
-import { Mascot } from './components/Mascot';
 
-interface Message {
+// ── Types ────────────────────────────────────────────────────────────────────
+
+type FieldType = 'text' | 'email' | 'url' | 'number' | 'textarea' | 'select' | 'multiselect' | 'boolean';
+
+interface FieldDef {
   id: string;
-  type: 'bot' | 'user';
-  text: string;
-  html?: string;
+  label: string;
+  hint?: string;
+  type: FieldType;
+  required: boolean;
+  options?: string[];
+  placeholder?: string;
+  maxLength?: number;
+  condition?: { field: string; value: unknown };
 }
 
-interface AnswerHistoryItem {
-  stepId: string;
-  question: string;
-  answer: unknown;
-  displayAnswer: string;
+interface BlockDef {
+  id: string;
+  label: string;
+  description: string;
+  fields: FieldDef[];
 }
 
-type AppState = 'loading' | 'welcome' | 'chat' | 'complete' | 'declined' | 'error';
-type CorrectionState = 'idle' | 'selecting' | 'entering';
+type AppState = 'loading' | 'form' | 'complete' | 'declined' | 'error';
 
-const CORRECTION_SELECT_STEP: FlowStep = {
-  id: '__correction_select__',
-  type: 'text',
-  question: '',
-  placeholder: 'Escribe el número…',
-  required: true,
-};
+// ── Form definition ──────────────────────────────────────────────────────────
 
-// ── Block definitions ────────────────────────────────────────────────────────
-
-const BLOCKS: { label: string; count: number }[] = [
-  { label: 'Identidad',      count: 3  },
-  { label: 'La empresa',     count: 10 },
-  { label: 'Los founders',   count: 7  },
-  { label: 'Tracción',       count: 5  },
-  { label: 'Equity & ronda', count: 10 },
-  { label: 'Cierre',         count: 4  },
+const BLOCKS: BlockDef[] = [
+  {
+    id: 'identity',
+    label: 'Identidad',
+    description: 'Primero lo básico — quién eres y qué estás construyendo.',
+    fields: [
+      { id: 'startup_name',      label: '¿Cómo se llama tu startup?', type: 'text',  required: true,  placeholder: 'Nombre de tu startup' },
+      { id: 'founder_full_name', label: 'Tu nombre completo',          type: 'text',  required: true,  placeholder: 'Nombre y apellidos' },
+      { id: 'founder_email',     label: 'Email profesional', hint: 'Por aquí te contactaremos si avanzas en el proceso.', type: 'email', required: true, placeholder: 'tu@startup.com' },
+    ],
+  },
+  {
+    id: 'company',
+    label: 'La empresa',
+    description: 'El producto, el mercado, y el insight que lo fundamenta.',
+    fields: [
+      { id: 'problem',          label: '¿Qué problema central estás resolviendo?', hint: 'Máximo tres líneas.', type: 'textarea', required: true, maxLength: 500 },
+      { id: 'demo_url',         label: 'URL que mejor muestra lo que estás construyendo', hint: 'Demo, producto, MVP o landing.', type: 'url', required: false, placeholder: 'https://' },
+      { id: 'industry_insight', label: 'Algo sobre tu industria que los grandes incumbentes no entienden ni ignoran', hint: '1–2 frases. Tu insight más potente como founder.', type: 'textarea', required: true, maxLength: 400 },
+      {
+        id: 'defensibility', required: true,
+        label: 'Un competidor levanta €100M mañana para matarte. ¿Qué es lo único que no puede comprar ni copiar en 12 meses?',
+        type: 'select',
+        options: [
+          'Data moat — datos propios/exclusivos/longitudinales que mejoran con el uso',
+          'Network effects — efectos de red',
+          'Deep integration / switching costs elevados',
+          'Ventaja técnica difícil de replicar',
+          'Regulación / licencias',
+          'Brand / GTM',
+          'Ninguno claramente todavía',
+        ],
+      },
+      {
+        id: 'third_party_dependence', required: true,
+        label: '¿Qué tan dependiente es tu valor core de APIs de terceros (OpenAI, AWS, etc.)?',
+        type: 'select',
+        options: [
+          'Independiente — los usamos para tareas no-core, el core es nuestro',
+          'Híbrido — mejoramos modelos de terceros con nuestros datos / fine-tuning',
+          'Dependiente — somos una capa superior / UX sobre APIs existentes',
+        ],
+      },
+      { id: 'sector',           required: true, label: 'Sector',            type: 'select', options: ['AI/ML', 'FinTech', 'HealthTech', 'EdTech', 'Climate', 'Cybersec', 'SaaS B2B', 'Deep Tech', 'Consumer', 'Otro'] },
+      { id: 'business_model',   required: true, label: 'Modelo de negocio', type: 'select', options: ['B2B', 'B2C', 'B2B2C', 'Marketplace', 'SaaS', 'Otro'] },
+      { id: 'potential_clients', required: true, label: '¿Aproximadamente cuántos clientes potenciales hay en tu mercado objetivo?', type: 'number', placeholder: 'ej. 50000' },
+      {
+        id: 'why_now_select', required: true,
+        label: '¿Por qué es posible este negocio ahora?',
+        hint: '¿Qué tailwind externo está acelerando más tu mercado?',
+        type: 'select',
+        options: [
+          'Nuevo compliance regulatorio obligatorio — compradores legalmente forzados a adoptar',
+          'Desequilibrio extremo oferta/demanda',
+          'GenAI / automatización a gran escala — reducción de costes 10x o nueva capacidad',
+          'Platform shift (ej. on-prem → cloud)',
+          'Ninguno / crecimiento general',
+        ],
+      },
+      { id: 'why_now_validation', required: true, label: 'Explícalo en un par de líneas', hint: 'Si puedes citar la ley, tecnología o dato de mercado que lo valida, mejor.', type: 'textarea', maxLength: 400 },
+    ],
+  },
+  {
+    id: 'founders',
+    label: 'Los founders',
+    description: '¿Quién hay detrás? Este bloque vale 35 puntos de la evaluación.',
+    fields: [
+      { id: 'technical_cofounder',       required: true, label: '¿Hay un co-founder técnico full-time en el equipo?', type: 'boolean' },
+      { id: 'number_of_founders',        required: true, label: '¿Cuántos founders full-time hay?',                   type: 'select', options: ['1', '2', '3', '4', '4+'] },
+      { id: 'founder_linkedin',          required: false, label: 'LinkedIn del equipo fundador', hint: 'El tuyo y el de los co-founders. Siempre lo miramos.', type: 'url', placeholder: 'https://linkedin.com/in/...' },
+      {
+        id: 'team_milestone', required: true,
+        label: '¿Cuál es el milestone colectivo más relevante del equipo?',
+        type: 'select',
+        options: [
+          'Serial founder, exit >€10M',
+          'Serial founder, exit <€10M',
+          'Serial founder, sin exit',
+          'Early employee (<20) en un unicornio / scale-up',
+          'PhD o investigador senior en el área',
+          'Senior corporativo, 10+ años en el sector',
+          'Founder por primera vez',
+        ],
+      },
+      { id: 'team_milestone_detail', required: true, label: 'Cuéntanos más sobre ese milestone', hint: '¿Founder por primera vez? Lo más impresionante que hayas construido, hackeado u organizado en los últimos 3 años sin presupuesto.', type: 'textarea', maxLength: 600 },
+      { id: 'sector_experience',     required: true, label: '¿Cuántos años de experiencia acumulada tiene el equipo en este sector?', type: 'select', options: ['0–2 años', '2–5 años', '6–12 años', '12+ años'] },
+      {
+        id: 'most_significant_milestone', required: true,
+        label: 'Desde el lanzamiento, ¿cuál es el milestone más significativo que habéis logrado?',
+        type: 'select',
+        options: [
+          'MVP construido y lanzado sin funding externo ni devs de terceros',
+          'Convencimos a un senior Tier-1 de dejar su trabajo por salario mínimo',
+          '3+ LOIs o pilotos firmados antes de tener producto terminado',
+          '€5k+ MRR (o uso equivalente) en las primeras 12 semanas del lanzamiento',
+          'Ninguno todavía',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'traction',
+    label: 'Tracción',
+    description: 'Números, no narrativa. 30 puntos en juego.',
+    fields: [
+      { id: 'north_star',          required: true, label: 'North Star metric y su valor actual', hint: 'ej. €18k MRR, 45k MAUs, 1.2k DAUs', type: 'text', placeholder: 'ej. €18k MRR' },
+      { id: 'mom_growth',          required: true, label: 'Crecimiento MoM promedio (últimos 3 meses)',  type: 'select', options: ['>20%', '10–20%', '5–10%', '<5% o N/A — construyendo / pivotando'] },
+      { id: 'net_burn',            required: true, label: 'Net burn mensual promedio (últimos 3 meses)', type: 'select', options: ['<€10k', '€10–25k', '€25–50k', '€50–100k', '>€100k'] },
+      { id: 'churn',               required: true, label: 'Churn mensual promedio (últimos 3 meses)',    type: 'select', options: ['<2%', '2–5%', '5–10%', '>10%'] },
+      { id: 'acquisition_channel', required: true, label: '¿Cómo estáis adquiriendo clientes?',         type: 'select', options: ['>80% orgánico (word-of-mouth / SEO / loops)', '50–80% orgánico, el resto paid', '<50% orgánico — heavy ads / sales'] },
+    ],
+  },
+  {
+    id: 'equity',
+    label: 'Equity & ronda',
+    description: 'Estructura legal y estado del fundraising.',
+    fields: [
+      { id: 'incorporation_location', required: true,  label: '¿Dónde está constituida tu empresa?',                            type: 'select',      options: ['España', 'Portugal', 'Francia', 'Italia', 'UK', 'UE', 'LATAM', 'Brasil', 'Otro'] },
+      { id: 'operations_location',    required: true,  label: '¿Dónde opera la empresa?', hint: 'Selecciona todos los que apliquen.', type: 'multiselect', options: ['México', 'Colombia', 'Chile', 'Argentina', 'Perú', 'Uruguay', 'Centroamérica & Caribe', 'USA', 'Brasil', 'Otro LATAM', 'Europa'] },
+      { id: 'company_start_year',     required: true,  label: '¿En qué año empezó a operar la empresa?',                        type: 'number',      placeholder: 'ej. 2024' },
+      { id: 'founding_equity',        required: true,  label: '¿Qué % del equity está en manos del equipo fundador (incluyendo option pool)?', type: 'select', options: ['>80%', '60–80%', '40–60%', '<40%'] },
+      { id: 'total_raised',           required: true,  label: '¿Cuánto habéis levantado hasta la fecha, excluyendo la ronda actual?', hint: 'Equity, notas, SAFEs.', type: 'select', options: ['<€500k', '€500k–1.5M', '€1.5M–2.5M', '>€2.5M'] },
+      { id: 'round_size',             required: true,  label: 'Tamaño total de la ronda actual (€)',                             type: 'number',      placeholder: 'ej. 1000000' },
+      { id: 'round_committed',        required: true,  label: '¿Cuánto de la ronda está comprometido?',                         type: 'select',      options: ['0–25%', '25–50%', '50–75%', '75%+'] },
+      { id: 'pre_money_valuation',    required: true,  label: 'Valoración pre-money o cap (€)',                                  type: 'number',      placeholder: 'ej. 5000000' },
+      { id: 'runway',                 required: true,  label: 'Runway actual',                                                   type: 'select',      options: ['0–2 meses', '2–5 meses', '6–12 meses', '12+ meses'] },
+      { id: 'pitch_deck_url',         required: false, label: 'Link al pitch deck', hint: 'Google Drive, Dropbox, Docsend o similar (PDF).', type: 'url', placeholder: 'https://...' },
+    ],
+  },
+  {
+    id: 'wrap',
+    label: 'Cierre',
+    description: 'Casi terminamos. Solo un minuto más.',
+    fields: [
+      { id: 'how_heard',            required: true,  label: '¿Cómo nos encontraste?',                    type: 'select', options: ['LinkedIn', 'Referral', 'Evento', 'Prensa', 'Otro'] },
+      { id: 'referral_name',        required: true,  label: '¿Quién te refirió?',                        type: 'text',   placeholder: 'Nombre de quien te recomendó', condition: { field: 'how_heard', value: 'Referral' } },
+      { id: 'network_contact',      required: true,  label: '¿Conoces a alguien de la red de Decelera?', hint: 'Mentor, founder del portfolio o LP.', type: 'boolean' },
+      { id: 'network_contact_name', required: true,  label: '¿Quién es y cuál es vuestra relación?',     type: 'text',   placeholder: 'ej. María García — mentor del portfolio', condition: { field: 'network_contact', value: true } },
+      { id: 'additional_comments',  required: false, label: '¿Algo más que quieras compartir?',          hint: 'Opcional.', type: 'textarea', maxLength: 800 },
+    ],
+  },
 ];
 
-const TOTAL_STEPS = BLOCKS.reduce((s, b) => s + b.count, 0);
+// ── Brand palette ─────────────────────────────────────────────────────────────
 
-const STEP_TO_BLOCK: Record<string, number> = {
-  // Block 0: Identidad
-  startup_name: 0, founder_full_name: 0, founder_email: 0,
-
-  // Block 1: La empresa
-  section_company: 1, problem: 1, demo_url: 1, industry_insight: 1,
-  defensibility: 1, third_party_dependence: 1, sector: 1, business_model: 1,
-  potential_clients: 1, why_now_select: 1, why_now_validation: 1,
-
-  // Block 2: Los founders
-  section_founders: 2, technical_cofounder: 2, number_of_founders: 2,
-  founder_linkedin: 2, team_milestone: 2, team_milestone_detail: 2,
-  sector_experience: 2, most_significant_milestone: 2,
-
-  // Block 3: Tracción
-  section_traction: 3, north_star: 3, mom_growth: 3, net_burn: 3,
-  churn: 3, acquisition_channel: 3,
-
-  // Block 4: Equity & ronda
-  section_equity: 4, incorporation_location: 4, operations_location: 4,
-  company_start_year: 4, founding_equity: 4, total_raised: 4,
-  round_size: 4, round_committed: 4, pre_money_valuation: 4,
-  runway: 4, pitch_deck_url: 4,
-
-  // Block 5: Cierre
-  section_wrap: 5, how_heard: 5, referral_name: 5,
-  network_contact: 5, network_contact_name: 5, additional_comments: 5,
+const C = {
+  navy:        '#1C2840',
+  gold:        '#FFB950',
+  water:       '#1FD0EF',
+  night:       '#2D3852',
+  cloud:       '#B9C1D4',
+  bg:          '#FAFAF9',
+  white:       '#FFFFFF',
+  error:       '#e53e3e',
+  green:       '#4ade80',
+  sbDivider:   'rgba(255,255,255,0.08)',
+  sbMuted:     'rgba(255,255,255,0.32)',
+  sbPending:   'rgba(255,255,255,0.22)',
+  sbFoot:      'rgba(255,255,255,0.28)',
+  inputBorder: 'rgba(45,56,82,0.18)',
 };
 
-// ── Welcome copy ─────────────────────────────────────────────────────────────
+// ── Validation ────────────────────────────────────────────────────────────────
 
-const INTRO_HTML = `¡Hola! Soy <strong>Paco</strong>, tu guía para la aplicación a <strong>Decelera LATAM 2026</strong> 🌎🚀<br><br>Somos un fondo founder-first — ofrecemos hasta <strong>$1M en initial funding</strong>, $1M reservado para follow-on, y una <strong>residencia 100% sponsored de 7 días</strong> en México para encontrar nuestras próximas startups.<br><br>Son <strong>5 pasos</strong>, unos 15 minutos. Puedes corregir tus respuestas en cualquier momento escribiendo <code>/correct</code>.`;
+function validateBlock(block: BlockDef, answers: Record<string, unknown>): Record<string, string> {
+  const errs: Record<string, string> = {};
+  for (const f of block.fields) {
+    if (f.condition) {
+      if (answers[f.condition.field] !== f.condition.value) continue;
+    }
+    if (!f.required) continue;
+    const v = answers[f.id];
+    if (v === undefined || v === null || v === '') errs[f.id] = 'Este campo es obligatorio.';
+    else if (Array.isArray(v) && v.length === 0)  errs[f.id] = 'Selecciona al menos una opción.';
+  }
+  return errs;
+}
 
-const GDPR_HTML = `Antes de empezar, una nota sobre tus datos 🔒<br><br><strong>Protección de datos</strong><br><br>La información de este formulario se gestiona bajo el marco "Decelera LATAM 2026 Application" en cumplimiento del RGPD y las leyes de protección de datos aplicables. Tienes derecho a acceder, corregir, eliminar u oponerte al tratamiento de tus datos. Para más detalles, visita nuestra <a href="https://www.deceleraamericas.ventures" target="_blank" style="color:var(--color-sea);text-decoration:underline">web</a> o escríbenos a hola@decelera.com.`;
+// ── Field components ──────────────────────────────────────────────────────────
 
-// ── Main component ───────────────────────────────────────────────────────────
+interface FieldInputProps {
+  field: FieldDef;
+  value: unknown;
+  onChange: (v: unknown) => void;
+  error?: string;
+}
+
+function FieldWrapper({ field, error, children }: { field: FieldDef; error?: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+      <label style={{ fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 500, color: C.night, lineHeight: 1.45 }}>
+        {field.label}
+        {field.required && <span style={{ color: C.gold, marginLeft: 4 }}>*</span>}
+      </label>
+      {field.hint && <p style={{ margin: 0, fontSize: 13, color: C.cloud, fontFamily: 'var(--font-body)', lineHeight: 1.55 }}>{field.hint}</p>}
+      {children}
+      {error && <p style={{ margin: 0, fontSize: 12, color: C.error, fontFamily: 'var(--font-body)' }}>{error}</p>}
+    </div>
+  );
+}
+
+function baseInput(hasError: boolean, focused: boolean): React.CSSProperties {
+  return {
+    width: '100%', boxSizing: 'border-box', padding: '11px 14px',
+    fontFamily: 'var(--font-body)', fontSize: 15, color: C.night, background: C.white,
+    border: `1.5px solid ${hasError ? C.error : focused ? C.navy : C.inputBorder}`,
+    borderRadius: 10, outline: 'none', transition: 'border-color 0.15s',
+  };
+}
+
+function TextField({ field, value, onChange, error }: FieldInputProps) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <FieldWrapper field={field} error={error}>
+      <input
+        type={field.type as 'text' | 'email' | 'url'}
+        value={(value as string) ?? ''}
+        onChange={e => onChange(e.target.value)}
+        placeholder={field.placeholder}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={baseInput(!!error, focused)}
+      />
+    </FieldWrapper>
+  );
+}
+
+function NumberField({ field, value, onChange, error }: FieldInputProps) {
+  const [focused, setFocused] = useState(false);
+  const raw = value !== undefined && value !== null ? String(value) : '';
+  return (
+    <FieldWrapper field={field} error={error}>
+      <input
+        type="text" inputMode="numeric"
+        value={raw}
+        onChange={e => { const v = e.target.value.replace(/[^0-9]/g, ''); onChange(v === '' ? '' : Number(v)); }}
+        placeholder={field.placeholder}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={baseInput(!!error, focused)}
+      />
+    </FieldWrapper>
+  );
+}
+
+function TextareaField({ field, value, onChange, error }: FieldInputProps) {
+  const [focused, setFocused] = useState(false);
+  const text = (value as string) ?? '';
+  const ref  = useRef<HTMLTextAreaElement>(null);
+  function resize() {
+    const ta = ref.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.max(100, ta.scrollHeight) + 'px';
+  }
+  return (
+    <FieldWrapper field={field} error={error}>
+      <textarea
+        ref={ref} value={text}
+        onChange={e => { onChange(e.target.value); setTimeout(resize, 0); }}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        rows={4} maxLength={field.maxLength}
+        style={{ ...baseInput(!!error, focused), resize: 'vertical', minHeight: 100, lineHeight: 1.65 }}
+      />
+      {field.maxLength && (
+        <p style={{ margin: 0, textAlign: 'right', fontSize: 12, fontFamily: 'var(--font-body)', color: text.length > field.maxLength * 0.9 ? C.gold : C.cloud }}>
+          {text.length} / {field.maxLength}
+        </p>
+      )}
+    </FieldWrapper>
+  );
+}
+
+function SelectField({ field, value, onChange, error }: FieldInputProps) {
+  const selected = value as string | undefined;
+  return (
+    <FieldWrapper field={field} error={error}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {field.options!.map(opt => {
+          const on = selected === opt;
+          return (
+            <button key={opt} type="button" onClick={() => onChange(on ? '' : opt)}
+              style={{
+                textAlign: 'left', padding: '12px 16px', borderRadius: 10, cursor: 'pointer',
+                fontFamily: 'var(--font-body)', fontSize: 14, lineHeight: 1.5,
+                border: `1.5px solid ${on ? C.navy : C.inputBorder}`,
+                background: on ? C.navy : C.white, color: on ? C.white : C.night,
+                transition: 'all 0.12s',
+              }}
+              onMouseEnter={e => { if (!on) (e.currentTarget as HTMLButtonElement).style.borderColor = C.water; }}
+              onMouseLeave={e => { if (!on) (e.currentTarget as HTMLButtonElement).style.borderColor = C.inputBorder; }}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+    </FieldWrapper>
+  );
+}
+
+function MultiSelectField({ field, value, onChange, error }: FieldInputProps) {
+  const sel: string[] = (value as string[]) ?? [];
+  function toggle(opt: string) {
+    onChange(sel.includes(opt) ? sel.filter(s => s !== opt) : [...sel, opt]);
+  }
+  return (
+    <FieldWrapper field={field} error={error}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {field.options!.map(opt => {
+          const on = sel.includes(opt);
+          return (
+            <button key={opt} type="button" onClick={() => toggle(opt)}
+              style={{
+                padding: '8px 16px', borderRadius: 999, cursor: 'pointer',
+                fontFamily: 'var(--font-body)', fontSize: 13,
+                border: `1.5px solid ${on ? C.navy : C.inputBorder}`,
+                background: on ? C.navy : C.white, color: on ? C.white : C.night,
+                transition: 'all 0.12s',
+              }}
+            >
+              {on && <span style={{ marginRight: 5 }}>✓</span>}{opt}
+            </button>
+          );
+        })}
+      </div>
+    </FieldWrapper>
+  );
+}
+
+function BooleanField({ field, value, onChange, error }: FieldInputProps) {
+  const val = value as boolean | undefined;
+  return (
+    <FieldWrapper field={field} error={error}>
+      <div style={{ display: 'flex', gap: 10 }}>
+        {([true, false] as const).map(opt => {
+          const on = val === opt;
+          return (
+            <button key={String(opt)} type="button" onClick={() => onChange(opt)}
+              style={{
+                flex: 1, padding: '14px 0', borderRadius: 12, cursor: 'pointer',
+                fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 500,
+                border: `1.5px solid ${on ? C.navy : C.inputBorder}`,
+                background: on ? C.navy : C.white, color: on ? C.white : C.night,
+                transition: 'all 0.12s',
+              }}
+            >
+              {opt ? 'Sí' : 'No'}
+            </button>
+          );
+        })}
+      </div>
+    </FieldWrapper>
+  );
+}
+
+function FieldInput(props: FieldInputProps) {
+  switch (props.field.type) {
+    case 'textarea':    return <TextareaField    {...props} />;
+    case 'select':      return <SelectField      {...props} />;
+    case 'multiselect': return <MultiSelectField {...props} />;
+    case 'boolean':     return <BooleanField     {...props} />;
+    case 'number':      return <NumberField      {...props} />;
+    default:            return <TextField        {...props} />;
+  }
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+
+function Sidebar({ currentBlock, visitedBlocks, onNavigate, answers, isFinished, isDeclined }: {
+  currentBlock: number;
+  visitedBlocks: Set<number>;
+  onNavigate: (idx: number) => void;
+  answers: Record<string, unknown>;
+  isFinished: boolean;
+  isDeclined: boolean;
+}) {
+  const allRequired = BLOCKS.flatMap(b => b.fields).filter(f => f.required);
+  const answered = allRequired.filter(f => {
+    if (f.condition && answers[f.condition.field] !== f.condition.value) return false;
+    const v = answers[f.id];
+    return v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && v.length === 0);
+  }).length;
+  const pct = Math.round((answered / allRequired.length) * 100);
+
+  return (
+    <aside style={{ width: 244, flexShrink: 0, display: 'flex', flexDirection: 'column', background: C.navy, overflowY: 'auto' }}>
+      <div style={{ padding: '24px 20px 18px', flexShrink: 0 }}>
+        <img
+          src="https://images.squarespace-cdn.com/content/v1/67811e8fe702fd5553c65249/c5500619-9712-4b9b-83ee-a697212735ae/Disen%CC%83o+sin+ti%CC%81tulo+%2840%29.png"
+          alt="Decelera"
+          style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.12)' }}
+        />
+        <div style={{ fontFamily: 'Taviraj, serif', fontWeight: 200, fontSize: 17, color: '#fff', marginTop: 14, letterSpacing: '0.01em', lineHeight: 1.15 }}>
+          Decelera Ventures
+        </div>
+        <div style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: C.sbFoot, marginTop: 3, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          {isFinished ? (isDeclined ? '✗ No encaja ahora' : '✓ Enviada') : 'LATAM 2026'}
+        </div>
+      </div>
+
+      <div style={{ height: 1, background: C.sbDivider, margin: '0 20px 6px', flexShrink: 0 }} />
+
+      <nav style={{ flex: 1, padding: '4px 0 8px' }}>
+        {BLOCKS.map((block, idx) => {
+          const isDone    = isFinished || (visitedBlocks.has(idx) && idx < currentBlock);
+          const isCurrent = !isFinished && idx === currentBlock;
+          const canClick  = isFinished || visitedBlocks.has(idx);
+          return (
+            <button
+              key={block.id} type="button" disabled={!canClick}
+              onClick={() => canClick && onNavigate(idx)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                width: '100%', padding: '10px 18px',
+                background: isCurrent ? 'rgba(255,184,80,0.10)' : 'transparent',
+                borderLeft: `3px solid ${isCurrent ? C.gold : 'transparent'}`,
+                border: isCurrent ? `0 0 0 3px ${C.gold}` : 'none',
+                borderLeftWidth: '3px',
+                borderLeftStyle: 'solid',
+                borderLeftColor: isCurrent ? C.gold : 'transparent',
+                borderTop: 'none', borderRight: 'none', borderBottom: 'none',
+                cursor: canClick ? 'pointer' : 'default',
+                textAlign: 'left', transition: 'background 0.15s',
+              }}
+            >
+              <div style={{
+                width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: isDone ? C.green : isCurrent ? C.gold : 'transparent',
+                border: (isDone || isCurrent) ? 'none' : '1.5px solid rgba(255,255,255,0.2)',
+              }}>
+                {isDone
+                  ? <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2.5 6l2.5 2.5 4.5-4.5" stroke="#1C2840" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  : <span style={{ fontSize: 10, color: isCurrent ? C.navy : 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-body)', fontWeight: 600 }}>{idx + 1}</span>
+                }
+              </div>
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: isCurrent ? 500 : 400, color: isDone ? C.sbMuted : isCurrent ? '#fff' : C.sbPending, lineHeight: 1.4 }}>
+                {block.label}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <div style={{ padding: '14px 20px 22px', borderTop: `1px solid ${C.sbDivider}`, flexShrink: 0 }}>
+        <div style={{ fontSize: 12, color: C.sbFoot, fontFamily: 'var(--font-body)', marginBottom: 10 }}>
+          {answered} / {allRequired.length} campos completados
+        </div>
+        <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden', marginBottom: 16 }}>
+          <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${C.gold}, #FF8C42)`, borderRadius: 2, transition: 'width 0.4s ease' }} />
+        </div>
+        <div style={{ display: 'flex', gap: 14 }}>
+          <a href="https://www.deceleraamericas.ventures" target="_blank" rel="noopener noreferrer"
+            style={{ color: C.sbFoot, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
+            onMouseLeave={e => (e.currentTarget.style.color = C.sbFoot)}
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+          </a>
+          <a href="https://www.linkedin.com/company/decelera/" target="_blank" rel="noopener noreferrer"
+            style={{ color: C.sbFoot, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
+            onMouseLeave={e => (e.currentTarget.style.color = C.sbFoot)}
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// ── Main App ──────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [appState, setAppState]                   = useState<AppState>('loading');
-  const [messages, setMessages]                   = useState<Message[]>([]);
-  const [session, setSession]                     = useState<ApplicationSession | null>(null);
-  const [currentStep, setCurrentStep]             = useState<FlowStep | null>(null);
-  const [isTyping, setIsTyping]                   = useState(false);
-  const [isSubmitting, setIsSubmitting]           = useState(false);
-  const [consentReady, setConsentReady]           = useState(false);
-  const [answerHistory, setAnswerHistory]         = useState<AnswerHistoryItem[]>([]);
-  const [aiMode, setAiMode]                       = useState(false);
-  const [correctionState, setCorrectionState]     = useState<CorrectionState>('idle');
-  const [correctionStep, setCorrectionStep]       = useState<FlowStep | null>(null);
-  const [correctionStepId, setCorrectionStepId]   = useState<string | null>(null);
-  const [confirmingRestart, setConfirmingRestart] = useState(false);
-  const [savedFlash, setSavedFlash]               = useState(false);
-  const [inputKey, setInputKey]                   = useState(0);
-  const bottomRef      = useRef<HTMLDivElement>(null);
-  const isRestoringRef = useRef(false);
-  const initRan        = useRef(false);
+  const [appState, setAppState]           = useState<AppState>('loading');
+  const [sessionId, setSessionId]         = useState<string | null>(null);
+  const [currentBlock, setCurrentBlock]   = useState(0);
+  const [visitedBlocks, setVisitedBlocks] = useState<Set<number>>(new Set([0]));
+  const [answers, setAnswers]             = useState<Record<string, unknown>>({});
+  const [errors, setErrors]               = useState<Record<string, string>>({});
+  const [submitting, setSubmitting]       = useState(false);
+  const [resultMsg, setResultMsg]         = useState('');
+  const scrollRef                         = useRef<HTMLDivElement>(null);
+  const initRan                           = useRef(false);
 
-  const currentBlockIndex: number = (() => {
-    if (appState === 'complete' || appState === 'declined') return BLOCKS.length;
-    if (!currentStep) return 0;
-    return STEP_TO_BLOCK[currentStep.id] ?? 0;
-  })();
+  const isLast     = currentBlock === BLOCKS.length - 1;
+  const isFinished = appState === 'complete' || appState === 'declined';
+  const block      = BLOCKS[currentBlock];
 
   useEffect(() => {
-    if (appState !== 'chat') return;
-    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [appState]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: isRestoringRef.current ? 'instant' : 'smooth' });
-    isRestoringRef.current = false;
-  }, [messages, isTyping, consentReady]);
-
-  useEffect(() => {
+    if (initRan.current) return;
+    initRan.current = true;
     (async () => {
-      if (initRan.current) return;
-      initRan.current = true;
       try {
         const savedId = localStorage.getItem('decelera_mex26_session_id');
-
         if (savedId) {
-          try {
-            const res = await fetch(`/api/sessions/${savedId}`);
-            if (res.ok) {
-              const data = await res.json();
-              if (data.session.status === 'completed') {
-                setAppState('complete');
-                return;
-              }
-
-              type HistoryEntry = { stepId: string; question: string; answer: unknown; type: string };
-              const restored: Message[] = [
-                { id: 'w-intro', type: 'bot', text: '', html: INTRO_HTML },
-                { id: 'w-gdpr',  type: 'bot', text: '', html: GDPR_HTML  },
-              ];
-              for (const entry of (data.history ?? []) as HistoryEntry[]) {
-                restored.push({ id: `bot-${entry.stepId}`, type: 'bot', text: entry.question });
-                if (entry.type !== 'statement' && entry.answer !== null && entry.answer !== undefined) {
-                  const display = Array.isArray(entry.answer)
-                    ? (entry.answer as unknown[]).join(', ')
-                    : typeof entry.answer === 'boolean' ? (entry.answer ? 'Sí' : 'No')
-                    : String(entry.answer);
-                  if (display) restored.push({ id: `user-${entry.stepId}`, type: 'user', text: display });
-                }
-              }
-              const restoredHistory: AnswerHistoryItem[] = (data.history ?? [])
-                .filter((e: HistoryEntry) => e.type !== 'statement' && e.answer !== null && e.answer !== undefined)
-                .map((e: HistoryEntry) => {
-                  const d = Array.isArray(e.answer)
-                    ? (e.answer as unknown[]).join(', ')
-                    : typeof e.answer === 'boolean' ? (e.answer ? 'Sí' : 'No')
-                    : String(e.answer);
-                  return { stepId: e.stepId, question: e.question, answer: e.answer, displayAnswer: d };
-                });
-              const n = restoredHistory.length;
-              restored.push({ id: 'w-back', type: 'bot', text: `¡Bienvenido/a de nuevo! 👋 Tienes ${n} pregunta${n !== 1 ? 's' : ''} respondida${n !== 1 ? 's' : ''} — seguimos donde lo dejaste.` });
-              restored.push({ id: 'bot-current', type: 'bot', text: data.step.question });
-              isRestoringRef.current = true;
-              setMessages(restored);
-              setAnswerHistory(restoredHistory);
-              setSession(data.session);
-              setCurrentStep(data.step);
-              setAppState('chat');
-              return;
+          const data = await loadSession(savedId);
+          if (data) {
+            if (data.session.status === 'completed') { setAppState('complete'); return; }
+            setSessionId(savedId);
+            setAnswers(data.answers ?? {});
+            const idx = BLOCKS.findIndex(b => b.id === data.currentBlock);
+            if (idx >= 0) {
+              setCurrentBlock(idx);
+              const v = new Set<number>();
+              for (let i = 0; i <= idx; i++) v.add(i);
+              setVisitedBlocks(v);
             }
-          } catch {
-            // fall through to new session
+            setAppState('form');
+            return;
           }
         }
-
-        const data = await startSession();
+        const data = await createSession();
         localStorage.setItem('decelera_mex26_session_id', data.session.id);
-        setSession(data.session);
-        setCurrentStep(data.step);
-        setAppState('welcome');
-        setIsTyping(true);
-
-        await delay(700);
-        setMessages([{ id: 'w-intro', type: 'bot', text: '', html: INTRO_HTML }]);
-        await delay(2400);
-        setMessages(prev => [...prev, { id: 'w-gdpr', type: 'bot', text: '', html: GDPR_HTML }]);
-        setIsTyping(false);
-        setConsentReady(true);
-
+        setSessionId(data.session.id);
+        setAppState('form');
       } catch {
         setAppState('error');
       }
     })();
   }, []);
 
-  function addBotMessage(text: string) {
-    setMessages(prev => [...prev, { id: `bot-${Date.now()}`, type: 'bot', text }]);
-  }
-  function addUserMessage(text: string) {
-    setMessages(prev => [...prev, { id: `user-${Date.now()}`, type: 'user', text }]);
+  useEffect(() => {
+    if (appState !== 'form') return;
+    const h = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', h);
+    return () => window.removeEventListener('beforeunload', h);
+  }, [appState]);
+
+  function setAnswer(id: string, v: unknown) {
+    setAnswers(prev => ({ ...prev, [id]: v }));
+    if (errors[id]) setErrors(prev => { const n = { ...prev }; delete n[id]; return n; });
   }
 
-  async function handleConsentChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!e.target.checked || !currentStep) return;
-    setConsentReady(false);
-    setIsTyping(true);
-    await delay(typingDelay(currentStep.question));
-    setIsTyping(false);
-    setMessages(prev => [...prev, { id: 'bot-first', type: 'bot', text: currentStep.question }]);
-    setAppState('chat');
+  function scrollTop() { scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+  async function navigateTo(idx: number) {
+    if (idx === currentBlock) return;
+    if (sessionId) saveDraft(sessionId, answers, BLOCKS[currentBlock].id).catch(() => {});
+    setErrors({});
+    setCurrentBlock(idx);
+    setVisitedBlocks(prev => new Set([...prev, idx]));
+    scrollTop();
   }
 
-  async function handleRestartConfirm(confirmed: boolean) {
-    setConfirmingRestart(false);
-    if (!confirmed) {
-      addUserMessage('No, continuar');
-      setIsTyping(true);
-      await delay(500);
-      setIsTyping(false);
-      addBotMessage('De acuerdo, continuamos donde lo dejamos 👍');
+  async function handleNext() {
+    const errs = validateBlock(block, answers);
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      const firstId = Object.keys(errs)[0];
+      document.getElementById(`field-${firstId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    addUserMessage('Sí, empezar de cero');
-    setIsTyping(true);
+    setErrors({});
+    const next = currentBlock + 1;
+    if (sessionId) saveDraft(sessionId, answers, BLOCKS[next]?.id ?? block.id).catch(() => {});
+    setCurrentBlock(next);
+    setVisitedBlocks(prev => new Set([...prev, next]));
+    scrollTop();
+  }
+
+  function handlePrev() {
+    setErrors({});
+    setCurrentBlock(prev => prev - 1);
+    scrollTop();
+  }
+
+  async function handleSubmit() {
+    const errs = validateBlock(block, answers);
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      const firstId = Object.keys(errs)[0];
+      document.getElementById(`field-${firstId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!sessionId) return;
+    setSubmitting(true);
     try {
-      const result = await restartSession(session!.id);
-      setAnswerHistory([]);
-      setCorrectionState('idle');
-      setCorrectionStep(null);
-      setCorrectionStepId(null);
-      setCurrentStep(result.step);
-      await delay(700);
-      setIsTyping(false);
-      addBotMessage('¡De acuerdo! Empezamos de cero 🔄');
-      await delay(typingDelay(result.step.question));
-      setIsTyping(true);
-      await delay(typingDelay(result.step.question));
-      setIsTyping(false);
-      addBotMessage(result.step.question);
+      const result = await submitApplication(sessionId, answers);
+      setResultMsg(result.message);
+      localStorage.removeItem('decelera_mex26_session_id');
+      setAppState(result.isDeclined ? 'declined' : 'complete');
     } catch {
-      setIsTyping(false);
-      addBotMessage('Algo salió mal. Inténtalo de nuevo.');
-    }
-  }
-
-  async function enterCorrectionMode() {
-    if (answerHistory.length === 0) {
-      setIsTyping(true);
-      await delay(600);
-      setIsTyping(false);
-      addBotMessage('No hay respuestas previas que corregir todavía.');
-      return;
-    }
-    const listHtml = answerHistory
-      .map((item, i) => {
-        const q = item.question.length > 55 ? item.question.slice(0, 52) + '…' : item.question;
-        return `<b>${i + 1}.</b> ${q} → <em>${item.displayAnswer}</em>`;
-      })
-      .join('<br>');
-    setIsTyping(true);
-    await delay(800);
-    setIsTyping(false);
-    setMessages(prev => [...prev, {
-      id: `bot-correct-${Date.now()}`,
-      type: 'bot', text: '',
-      html: `¿Qué respuesta quieres corregir?<br><br>${listHtml}<br><br>Escribe el número:`,
-    }]);
-    setCorrectionState('selecting');
-  }
-
-  async function handleAnswer(answer: unknown) {
-    if (!session || isSubmitting) return;
-
-    // Correction: selecting a question number
-    if (correctionState === 'selecting') {
-      const raw = String(answer).trim();
-      addUserMessage(raw);
-      const num = parseInt(raw, 10);
-      if (isNaN(num) || num < 1 || num > answerHistory.length) {
-        setIsTyping(true);
-        await delay(500);
-        setIsTyping(false);
-        addBotMessage(`Escribe un número entre 1 y ${answerHistory.length}.`);
-        return;
-      }
-      const item = answerHistory[num - 1];
-      setIsTyping(true);
-      let step: FlowStep;
-      try {
-        step = await getFlowStep(item.stepId);
-      } catch {
-        setIsTyping(false);
-        addBotMessage('No pude cargar esa pregunta. Inténtalo de nuevo.');
-        return;
-      }
-      await delay(700);
-      setIsTyping(false);
-      setMessages(prev => [...prev, {
-        id: `bot-correct-q-${Date.now()}`,
-        type: 'bot', text: '',
-        html: `${item.question}<br><br>Tu respuesta actual: <em>${item.displayAnswer}</em><br><br>¿Cuál es la correcta?`,
-      }]);
-      setCorrectionStep(step);
-      setCorrectionStepId(item.stepId);
-      setCorrectionState('entering');
-      return;
-    }
-
-    // Correction: submitting corrected answer
-    if (correctionState === 'entering' && correctionStepId && correctionStep) {
-      setIsSubmitting(true);
-      const displayAnswer = formatAnswerForDisplay(answer, correctionStep);
-      if (displayAnswer) addUserMessage(displayAnswer);
-      try {
-        await correctAnswer(session.id, correctionStepId, answer);
-        setAnswerHistory(prev => prev.map(item =>
-          item.stepId === correctionStepId ? { ...item, answer, displayAnswer } : item
-        ));
-        setIsTyping(true);
-        await delay(700);
-        setIsTyping(false);
-        addBotMessage('✓ ¡Actualizado! Continuamos donde lo dejamos.');
-        if (currentStep) {
-          setIsTyping(true);
-          await delay(typingDelay(currentStep.question));
-          setIsTyping(false);
-          addBotMessage(currentStep.question);
-        }
-      } catch {
-        addBotMessage('Algo salió mal. Inténtalo de nuevo.');
-      } finally {
-        setIsSubmitting(false);
-        setCorrectionState('idle');
-        setCorrectionStep(null);
-        setCorrectionStepId(null);
-      }
-      return;
-    }
-
-    // Free-form question / /ask command
-    if (typeof answer === 'string') {
-      const t = answer.trim();
-      const isAskCmd = t.toLowerCase().startsWith('/ask ');
-      const isQuestion = t.endsWith('?') && !t.startsWith('/');
-      if (isAskCmd || isQuestion) {
-        const q = isAskCmd ? t.slice(5).trim() : t;
-        if (!q) return;
-        addUserMessage(t);
-        setIsTyping(true);
-        try {
-          const reply = await chatMessage(q, currentStep?.question, answerHistory.length);
-          addBotMessage(reply);
-        } catch {
-          addBotMessage('No pude conectar con el asistente ahora mismo. Continúa con el formulario.');
-        } finally {
-          setIsTyping(false);
-          setInputKey(k => k + 1);
-        }
-        return;
-      }
-    }
-
-    // Slash commands
-    if (typeof answer === 'string' && answer.trim().startsWith('/')) {
-      const cmd = answer.trim().toLowerCase();
-      addUserMessage(answer.trim());
-      if (cmd === '/correct') {
-        await enterCorrectionMode();
-      } else if (cmd === '/restart') {
-        setIsTyping(true);
-        await delay(600);
-        setIsTyping(false);
-        addBotMessage('¿Estás seguro de que quieres empezar de cero? Perderás todas tus respuestas.');
-        setConfirmingRestart(true);
-      } else if (cmd === '/help') {
-        setIsTyping(true);
-        await delay(500);
-        setIsTyping(false);
-        setMessages(prev => [...prev, {
-          id: `bot-help-${Date.now()}`, type: 'bot', text: '', html:
-            `<b>Comandos disponibles:</b><br><br>` +
-            `<b>/ask [pregunta]</b> — Pregunta algo sobre Decelera<br>` +
-            `<b>/correct</b> — Editar una respuesta anterior<br>` +
-            `<b>/restart</b> — Empezar de cero<br>` +
-            `<b>/summary</b> — Ver un resumen de tus respuestas<br>` +
-            `<b>/help</b> — Mostrar esta ayuda`,
-        }]);
-      } else if (cmd === '/summary') {
-        setIsTyping(true);
-        await delay(600);
-        setIsTyping(false);
-        if (answerHistory.length === 0) {
-          addBotMessage('Aún no has respondido ninguna pregunta.');
-        } else {
-          const html = answerHistory
-            .map((item, i) => {
-              const q = item.question.length > 55 ? item.question.slice(0, 52) + '…' : item.question;
-              return `<b>${i + 1}. ${q}</b><br>${item.displayAnswer}`;
-            })
-            .join('<br><br>');
-          setMessages(prev => [...prev, {
-            id: `bot-summary-${Date.now()}`, type: 'bot', text: '', html:
-              `<b>Resumen de tus respuestas:</b><br><br>${html}`,
-          }]);
-        }
-      } else {
-        setIsTyping(true);
-        await delay(500);
-        setIsTyping(false);
-        addBotMessage('Comando no reconocido. Escribe /help para ver los disponibles.');
-      }
-      return;
-    }
-
-    // Normal answer submission
-    if (!currentStep) return;
-    setIsSubmitting(true);
-
-    const displayAnswer = formatAnswerForDisplay(answer, currentStep);
-    if (displayAnswer) addUserMessage(displayAnswer);
-
-    try {
-      const result = await submitAnswer(session.id, currentStep.id, answer);
-      setSession(result.session);
-
-      setSavedFlash(true);
-      setTimeout(() => setSavedFlash(false), 2000);
-
-      if (currentStep.type !== 'statement' && answer !== null && answer !== undefined && displayAnswer) {
-        setAnswerHistory(prev => [...prev, {
-          stepId: currentStep.id,
-          question: currentStep.question,
-          answer,
-          displayAnswer,
-        }]);
-      }
-
-      if (result.isComplete) {
-        setIsTyping(true);
-        await delay(typingDelay(result.completionMessage ?? ''));
-        setIsTyping(false);
-        addBotMessage(result.completionMessage ?? '');
-        setAppState(result.isDeclined ? 'declined' : 'complete');
-        localStorage.removeItem('decelera_mex26_session_id');
-        return;
-      }
-
-      if (result.nextStep) {
-        setIsTyping(true);
-        await delay(typingDelay(result.nextStep.question));
-        setIsTyping(false);
-        setCurrentStep(result.nextStep);
-        addBotMessage(result.nextStep.question);
-      }
-    } catch {
-      addBotMessage('Algo salió mal guardando tu respuesta. Por favor, inténtalo de nuevo.');
+      setErrors({ __form: 'Algo salió mal al enviar. Inténtalo de nuevo.' });
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   }
 
-  async function handleAiMessage(text: string) {
-    const t = text.trim();
-    if (!t) return;
-    if (t.startsWith('/') || t.endsWith('?')) return handleAnswer(t);
-    if (!session || !currentStep || isSubmitting) return;
-
-    setIsSubmitting(true);
-    addUserMessage(t);
-    setIsTyping(true);
-
-    try {
-      const result = await chatFormAnswer(session.id, t);
-
-      if (!result.isAnswer) {
-        await delay(400);
-        setIsTyping(false);
-        addBotMessage(result.ackMessage);
-        return;
-      }
-
-      await delay(400);
-      setIsTyping(false);
-      addBotMessage(result.ackMessage);
-
-      setSession(result.session!);
-      setSavedFlash(true);
-      setTimeout(() => setSavedFlash(false), 2000);
-
-      if (currentStep.type !== 'statement' && result.extractedValue !== null && result.extractedValue !== undefined) {
-        const displayAnswer = formatAnswerForDisplay(result.extractedValue, currentStep);
-        if (displayAnswer) {
-          setAnswerHistory(prev => [...prev, {
-            stepId: currentStep.id,
-            question: currentStep.question,
-            answer: result.extractedValue,
-            displayAnswer,
-          }]);
-        }
-      }
-
-      if (result.isComplete) {
-        setIsTyping(true);
-        await delay(typingDelay(result.completionMessage ?? ''));
-        setIsTyping(false);
-        addBotMessage(result.completionMessage ?? '');
-        setAppState(result.isDeclined ? 'declined' : 'complete');
-        localStorage.removeItem('decelera_mex26_session_id');
-        return;
-      }
-
-      if (result.nextStep) {
-        setIsTyping(true);
-        await delay(typingDelay(result.nextStep.question));
-        setIsTyping(false);
-        setCurrentStep(result.nextStep);
-        addBotMessage(result.nextStep.question);
-      }
-    } catch {
-      setIsTyping(false);
-      addBotMessage('Algo salió mal. Por favor, inténtalo de nuevo.');
-    } finally {
-      setIsSubmitting(false);
-      setInputKey(k => k + 1);
-    }
-  }
-
-  // ── Render: loading / error ────────────────────────────────────────────────
-
+  // Loading
   if (appState === 'loading') {
     return (
-      <div style={{ height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
-        <LoadingDots />
+      <div style={{ height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.bg }}>
+        <div style={{ display: 'flex', gap: 7 }}>
+          {[0, 1, 2].map(i => (
+            <span key={i} style={{ width: 9, height: 9, borderRadius: '50%', background: C.cloud, display: 'inline-block', animation: `bounce 1.2s ${i * 0.2}s ease-in-out infinite` }} />
+          ))}
+        </div>
       </div>
     );
   }
 
+  // Error
   if (appState === 'error') {
     return (
-      <div style={{ height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
-        <div style={{ textAlign: 'center', color: 'var(--color-cloud)', fontFamily: 'var(--font-body)' }}>
-          <p>No se pudo cargar el formulario.</p>
-          <p style={{ fontSize: 13, marginTop: 6 }}>Recarga la página o inténtalo más tarde.</p>
+      <div style={{ height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.bg }}>
+        <div style={{ textAlign: 'center', fontFamily: 'var(--font-body)', color: C.cloud }}>
+          <p style={{ fontSize: 16, margin: '0 0 8px' }}>No se pudo cargar el formulario.</p>
+          <p style={{ fontSize: 13, margin: 0 }}>Recarga la página o inténtalo más tarde.</p>
         </div>
       </div>
     );
   }
 
-  const activeStep =
-    correctionState === 'entering' && correctionStep ? correctionStep
-    : correctionState === 'selecting' ? CORRECTION_SELECT_STEP
-    : currentStep;
+  // Complete
+  if (appState === 'complete') {
+    return (
+      <div style={{ display: 'flex', height: '100dvh' }}>
+        <Confetti />
+        <Sidebar currentBlock={BLOCKS.length} visitedBlocks={new Set(BLOCKS.map((_, i) => i))} onNavigate={() => {}} answers={answers} isFinished isDeclined={false} />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: C.bg, padding: '40px 24px', textAlign: 'center' }}>
+          <div style={{ fontSize: 52, marginBottom: 20 }}>🎉</div>
+          <h1 style={{ fontFamily: 'Taviraj, serif', fontWeight: 200, fontSize: 32, color: C.navy, margin: '0 0 16px', letterSpacing: '-0.01em' }}>
+            ¡Aplicación enviada!
+          </h1>
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: '#6B7A99', maxWidth: 520, lineHeight: 1.75, margin: '0 0 36px' }}>
+            {resultMsg}
+          </p>
+          <p style={{ fontFamily: 'Taviraj, serif', fontWeight: 200, fontSize: 18, color: C.cloud, letterSpacing: '0.04em', margin: 0 }}>
+            Breathe. Focus. Grow.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  // ── Sidebar palette ───────────────────────────────────────────────────────
+  // Declined
+  if (appState === 'declined') {
+    return (
+      <div style={{ display: 'flex', height: '100dvh' }}>
+        <Sidebar currentBlock={BLOCKS.length} visitedBlocks={new Set(BLOCKS.map((_, i) => i))} onNavigate={() => {}} answers={answers} isFinished isDeclined />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: C.bg, padding: '40px 24px', textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 20 }}>🙏</div>
+          <h1 style={{ fontFamily: 'Taviraj, serif', fontWeight: 200, fontSize: 30, color: C.navy, margin: '0 0 16px' }}>
+            Gracias por compartir tu proyecto
+          </h1>
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: 15, color: '#6B7A99', maxWidth: 520, lineHeight: 1.75, margin: '0 0 32px' }}>
+            {resultMsg}
+          </p>
+          <p style={{ fontFamily: 'Taviraj, serif', fontWeight: 200, fontSize: 17, color: C.cloud, letterSpacing: '0.04em', margin: 0 }}>
+            Breathe. Focus. Grow.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  const SB = {
-    bg:           '#1C2840',
-    divider:      'rgba(255,255,255,0.07)',
-    textDone:     'rgba(255,255,255,0.32)',
-    textPending:  'rgba(255,255,255,0.28)',
-    textCurrent:  '#FFFFFF',
-    iconDone:     '#4ade80',
-    accentBg:     'rgba(255,184,80,0.10)',
-    accentBorder: '#FFB950',
-    footerText:   'rgba(255,255,255,0.30)',
-    linkHover:    'rgba(255,255,255,0.55)',
-  } as const;
-
-  const isFinished = appState === 'complete' || appState === 'declined';
+  // Form
+  const visibleFields = block.fields.filter(f => !f.condition || answers[f.condition.field] === f.condition.value);
 
   return (
-    <div style={{ display: 'flex', height: '100dvh', width: '100%' }}>
+    <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden' }}>
+      <Sidebar
+        currentBlock={currentBlock}
+        visitedBlocks={visitedBlocks}
+        onNavigate={navigateTo}
+        answers={answers}
+        isFinished={isFinished}
+        isDeclined={false}
+      />
 
-      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-      <aside
-        className="app-sidebar"
-        style={{
-          width: 232, flexShrink: 0,
-          display: 'flex', flexDirection: 'column',
-          background: SB.bg, overflowY: 'auto',
-        }}
-      >
-        {/* Brand header */}
-        <div style={{ padding: '22px 18px 16px', flexShrink: 0 }}>
-          <img
-            src="https://images.squarespace-cdn.com/content/v1/67811e8fe702fd5553c65249/c5500619-9712-4b9b-83ee-a697212735ae/Disen%CC%83o+sin+ti%CC%81tulo+%2840%29.png"
-            alt="Decelera"
-            style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', display: 'block', border: '2px solid rgba(255,255,255,0.12)' }}
-          />
-          <div style={{ fontFamily: 'Taviraj, serif', fontWeight: 200, fontSize: 17, color: '#FFFFFF', marginTop: 12, letterSpacing: '0.01em', lineHeight: 1.15 }}>
-            Decelera Ventures
-          </div>
-          <div style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: SB.footerText, marginTop: 3, letterSpacing: '0.03em', textTransform: 'uppercase' }}>
-            {isFinished ? (appState === 'declined' ? '✗ No encaja ahora' : '✓ Aplicación enviada') : 'LATAM 2026'}
-          </div>
-        </div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: C.bg }}>
 
-        <div style={{ height: 1, background: SB.divider, margin: '0 18px 8px', flexShrink: 0 }} />
-
-        {/* Block list */}
-        <div style={{ flex: 1, padding: '4px 0 8px' }}>
-          {BLOCKS.map((block, idx) => {
-            const isDone    = isFinished || idx < currentBlockIndex;
-            const isCurrent = !isFinished && idx === currentBlockIndex;
-            const answered  = answerHistory.filter(a => STEP_TO_BLOCK[a.stepId] === idx).length;
-
-            return (
-              <div
-                key={idx}
-                style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 10,
-                  padding: '9px 14px 9px 16px', marginBottom: 1,
-                  borderLeft: `3px solid ${isCurrent ? SB.accentBorder : 'transparent'}`,
-                  background: isCurrent ? SB.accentBg : 'transparent',
-                  transition: 'background 0.2s',
-                }}
-              >
-                <div style={{
-                  width: 20, height: 20, borderRadius: '50%', flexShrink: 0, marginTop: 1,
-                  background: isDone ? SB.iconDone : isCurrent ? SB.accentBorder : 'transparent',
-                  border: (isDone || isCurrent) ? 'none' : `1.5px solid rgba(255,255,255,0.2)`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {isDone ? (
-                    <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
-                      <path d="M2.5 6l2.5 2.5 4.5-4.5" stroke="#1C2840" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  ) : !isCurrent ? (
-                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-body)', fontWeight: 500 }}>{idx + 1}</span>
-                  ) : null}
-                </div>
-
-                <div>
-                  <div style={{
-                    fontFamily: 'var(--font-body)', fontSize: 13,
-                    fontWeight: isCurrent ? 500 : 400,
-                    color: isDone ? SB.textDone : isCurrent ? SB.textCurrent : SB.textPending,
-                    lineHeight: 1.4,
-                  }}>
-                    {block.label}
-                  </div>
-                  {isCurrent && (
-                    <div style={{ fontSize: 11, color: 'rgba(255,184,80,0.7)', marginTop: 2 }}>
-                      {answered} / {block.count} preguntas
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Footer */}
-        <div style={{ padding: '14px 18px 20px', borderTop: `1px solid ${SB.divider}`, flexShrink: 0 }}>
-          {savedFlash && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#4ade80', fontFamily: 'var(--font-body)', marginBottom: 10, animation: 'fadeSlideIn 0.2s ease-out' }}>
-              ✓ Guardado
+        {/* Header */}
+        <div style={{ borderBottom: '1px solid rgba(45,56,82,0.09)', background: C.white, flexShrink: 0, padding: '0 40px' }}>
+          <div style={{ maxWidth: 680, margin: '0 auto', padding: '22px 0', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+            <div>
+              <h1 style={{ fontFamily: 'Taviraj, serif', fontWeight: 300, fontSize: 26, color: C.navy, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
+                {block.label}
+              </h1>
+              <p style={{ margin: 0, fontFamily: 'var(--font-body)', fontSize: 14, color: C.cloud }}>
+                {block.description}
+              </p>
             </div>
-          )}
-          <div style={{ fontSize: 11, color: SB.footerText, fontFamily: 'var(--font-body)', marginBottom: 12 }}>
-            {answerHistory.length} / {TOTAL_STEPS} preguntas respondidas
-          </div>
-
-          <div style={{ height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden', marginBottom: 14 }}>
-            <div style={{
-              height: '100%',
-              width: `${Math.round((answerHistory.length / TOTAL_STEPS) * 100)}%`,
-              background: 'linear-gradient(90deg, #FFB950, #FF8C42)',
-              borderRadius: 2, transition: 'width 0.4s ease',
-            }} />
-          </div>
-
-          <div style={{ display: 'flex', gap: 12 }}>
-            <a href="https://www.deceleraamericas.ventures" target="_blank" rel="noopener noreferrer"
-              style={{ color: SB.footerText, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
-              onMouseEnter={e => (e.currentTarget.style.color = SB.linkHover)}
-              onMouseLeave={e => (e.currentTarget.style.color = SB.footerText)}
-            >
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-              </svg>
-            </a>
-            <a href="https://www.linkedin.com/company/decelera/posts/?feedView=all" target="_blank" rel="noopener noreferrer"
-              style={{ color: SB.footerText, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
-              onMouseEnter={e => (e.currentTarget.style.color = SB.linkHover)}
-              onMouseLeave={e => (e.currentTarget.style.color = SB.footerText)}
-            >
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-              </svg>
-            </a>
-          </div>
-        </div>
-      </aside>
-
-      {/* ── Main area ────────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, background: '#FAFAF9' }}>
-
-        {/* Mobile top bar */}
-        <div
-          className="mobile-block-bar"
-          style={{
-            display: 'none', alignItems: 'center', gap: 10,
-            padding: '10px 16px', borderBottom: '1px solid rgba(28,40,64,0.1)',
-            background: SB.bg, flexShrink: 0,
-          }}
-        >
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            {BLOCKS.map((_, idx) => {
-              const isDone    = isFinished || idx < currentBlockIndex;
-              const isCurrent = !isFinished && idx === currentBlockIndex;
-              return (
-                <div key={idx} style={{
-                  width: isCurrent ? 22 : 7, height: 7, borderRadius: 4,
-                  background: isDone ? '#4ade80' : isCurrent ? '#FFB950' : 'rgba(255,255,255,0.2)',
-                  transition: 'width 0.3s',
-                }} />
-              );
-            })}
-          </div>
-          {currentBlockIndex >= 0 && currentBlockIndex < BLOCKS.length && (
-            <span style={{ fontSize: 13, fontFamily: 'var(--font-body)', fontWeight: 500, color: '#fff' }}>
-              {BLOCKS[currentBlockIndex].label}
+            <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: C.cloud, flexShrink: 0, marginLeft: 24 }}>
+              Paso {currentBlock + 1} de {BLOCKS.length}
             </span>
-          )}
-          <span style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.45)', fontFamily: 'var(--font-body)' }}>
-            {answerHistory.length}/{TOTAL_STEPS}
-          </span>
-        </div>
-
-        {/* Messages */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '32px 0 16px' }}>
-          <div style={{ maxWidth: 860, margin: '0 auto', padding: 'var(--chat-padding)', display: 'flex', gap: 'var(--chat-gap)', alignItems: 'flex-start' }}>
-
-            <div className="mascot-col" style={{ flexShrink: 0, position: 'sticky', bottom: '24px', alignSelf: 'flex-end' }}>
-              <Mascot size={96} animating={isTyping} />
-            </div>
-
-            <div style={{ flex: 1, minWidth: 0 }}>
-              {messages.map((msg, i) => {
-                const isLast = i === messages.length - 1;
-                const prevMsg = messages[i - 1];
-                const showDivider = msg.type === 'bot' && prevMsg?.type === 'bot';
-                return (
-                <React.Fragment key={msg.id}>
-                  {showDivider && (
-                    <div style={{ height: 1, background: 'rgba(45,56,82,0.08)', margin: '-12px 0 16px' }} />
-                  )}
-                  {msg.html ? (
-                  <ChatBubble type={msg.type} isNew={isLast}>
-                    <div dangerouslySetInnerHTML={{ __html: msg.html }} />
-                    {consentReady && isLast && (
-                      <label style={{
-                        display: 'flex', alignItems: 'flex-start', gap: 10,
-                        cursor: 'pointer', marginTop: 18, fontFamily: 'var(--font-body)',
-                        fontSize: 13, color: '#8896AE', lineHeight: 1.55,
-                      }}>
-                        <input
-                          type="checkbox"
-                          onChange={handleConsentChange}
-                          style={{ flexShrink: 0, accentColor: 'var(--color-sea)', width: 16, height: 16, marginTop: 2 }}
-                        />
-                        He leído y acepto los términos de protección de datos.
-                      </label>
-                    )}
-                  </ChatBubble>
-                  ) : (
-                    <ChatBubble message={msg.text} type={msg.type} isNew={isLast} />
-                  )}
-                </React.Fragment>
-                );
-              })}
-              {isTyping && <TypingIndicator />}
-              <div ref={bottomRef} />
-            </div>
           </div>
         </div>
 
-        {/* Input area */}
-        {appState === 'chat' && (
-          <div style={{
-            borderTop: '1px solid rgba(28,40,64,0.09)',
-            background: '#FFFFFF', padding: '12px 0 16px', flexShrink: 0,
-          }}>
-            <div style={{ maxWidth: 860, margin: '0 auto', padding: 'var(--input-padding)' }}>
-              {confirmingRestart ? (
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button
-                    onClick={() => handleRestartConfirm(true)}
-                    style={{ flex: 1, padding: '12px 0', borderRadius: 999, fontSize: 15, fontFamily: 'var(--font-body)', cursor: 'pointer', border: 'none', background: SB.bg, color: '#fff', fontWeight: 500 }}
-                  >
-                    Sí, empezar de cero
-                  </button>
-                  <button
-                    onClick={() => handleRestartConfirm(false)}
-                    style={{ flex: 1, padding: '12px 0', borderRadius: 999, fontSize: 15, fontFamily: 'var(--font-body)', cursor: 'pointer', border: '1.5px solid rgba(28,40,64,0.12)', background: '#fff', color: '#1a2133' }}
-                  >
-                    No, continuar
-                  </button>
-                </div>
-              ) : activeStep ? (
-                <>
-                  {aiMode
-                    ? <AiInput key={inputKey} onSubmit={handleAiMessage} disabled={isSubmitting || isTyping} />
-                    : <StepInput key={inputKey} step={activeStep} onSubmit={handleAnswer} disabled={isSubmitting || isTyping} />
-                  }
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-                    <p style={{ margin: 0, fontSize: 11, color: '#B0BCCF', fontFamily: 'var(--font-body)' }}>
-                      {aiMode
-                        ? 'Modo IA — escribe con tus propias palabras'
-                        : <>Escribe <code style={{ fontFamily: 'monospace', fontSize: 11 }}>/</code> para ver los comandos</>
-                      }
-                    </p>
-                    <button
-                      onClick={() => setAiMode(m => !m)}
-                      style={{
-                        padding: '3px 10px', borderRadius: 999,
-                        border: `1.5px solid ${aiMode ? '#1C2840' : 'rgba(28,40,64,0.18)'}`,
-                        background: aiMode ? '#1C2840' : 'transparent',
-                        color: aiMode ? '#fff' : '#8896AE',
-                        fontSize: 11, fontFamily: 'var(--font-body)', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s',
-                      }}
-                    >
-                      ✦ IA
-                    </button>
-                  </div>
-                </>
-              ) : null}
-            </div>
-          </div>
-        )}
-
-        {appState === 'complete' && (
-          <>
-            <Confetti />
-            <div style={{ padding: '20px 0 32px', textAlign: 'center', flexShrink: 0 }}>
-              <span style={{ fontFamily: 'Taviraj, serif', fontWeight: 200, fontSize: 18, color: '#8896AE', letterSpacing: '0.04em' }}>
-                Breathe. Focus. Grow.
-              </span>
-              <div style={{
-                margin: '24px auto 0', maxWidth: 640, borderRadius: 16,
-                overflow: 'hidden', aspectRatio: '16/9',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.10)',
-              }}>
-                <iframe
-                  src="https://www.youtube.com/embed/Zkg_Av73SZ8"
-                  title="Decelera LATAM 2026"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+        {/* Scrollable content */}
+        <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '36px 40px 120px' }}>
+          <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 36 }}>
+            {visibleFields.map(field => (
+              <div key={field.id} id={`field-${field.id}`}>
+                <FieldInput
+                  field={field}
+                  value={answers[field.id]}
+                  onChange={v => setAnswer(field.id, v)}
+                  error={errors[field.id]}
                 />
               </div>
-            </div>
-          </>
-        )}
-
-        {appState === 'declined' && (
-          <div style={{ padding: '20px 0 32px', textAlign: 'center', flexShrink: 0 }}>
-            <span style={{ fontFamily: 'Taviraj, serif', fontWeight: 200, fontSize: 18, color: '#8896AE', letterSpacing: '0.04em' }}>
-              Gracias por tu tiempo.
-            </span>
+            ))}
+            {errors.__form && (
+              <p style={{ margin: 0, fontSize: 14, color: C.error, fontFamily: 'var(--font-body)', padding: '12px 16px', background: 'rgba(229,62,62,0.06)', borderRadius: 8 }}>
+                {errors.__form}
+              </p>
+            )}
           </div>
-        )}
+        </div>
+
+        {/* Navigation */}
+        <div style={{ borderTop: '1px solid rgba(45,56,82,0.09)', background: C.white, padding: '16px 40px', flexShrink: 0 }}>
+          <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button
+              type="button" onClick={handlePrev} disabled={currentBlock === 0}
+              style={{
+                padding: '11px 22px', borderRadius: 10, fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500,
+                border: `1.5px solid ${currentBlock === 0 ? 'rgba(45,56,82,0.08)' : C.inputBorder}`,
+                background: 'transparent', color: currentBlock === 0 ? C.cloud : C.night,
+                cursor: currentBlock === 0 ? 'default' : 'pointer', transition: 'all 0.12s',
+              }}
+            >
+              ← Anterior
+            </button>
+
+            {isLast ? (
+              <button
+                type="button" onClick={handleSubmit} disabled={submitting}
+                style={{
+                  padding: '12px 28px', borderRadius: 10, fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 600,
+                  border: 'none', cursor: submitting ? 'wait' : 'pointer',
+                  background: submitting ? C.cloud : C.navy, color: '#fff',
+                  boxShadow: submitting ? 'none' : '0 2px 12px rgba(28,40,64,0.2)', transition: 'background 0.15s',
+                }}
+              >
+                {submitting ? 'Enviando…' : 'Enviar aplicación →'}
+              </button>
+            ) : (
+              <button
+                type="button" onClick={handleNext}
+                style={{
+                  padding: '12px 28px', borderRadius: 10, fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 500,
+                  border: 'none', cursor: 'pointer', background: C.navy, color: '#fff',
+                  boxShadow: '0 2px 12px rgba(28,40,64,0.2)', transition: 'background 0.15s',
+                }}
+                onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.background = C.night)}
+                onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.background = C.navy)}
+              >
+                Siguiente →
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function LoadingDots() {
-  return (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
-      {[0, 1, 2].map((i) => (
-        <span key={i} style={{
-          width: 8, height: 8, borderRadius: '50%',
-          background: 'var(--color-cloud)', display: 'inline-block',
-          animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
-        }} />
-      ))}
-    </div>
-  );
-}
-
-function AiInput({ onSubmit, disabled }: { onSubmit: (text: string) => void; disabled: boolean }) {
-  const [text, setText] = useState('');
-  const taRef = useRef<HTMLTextAreaElement>(null);
-
-  function submit() {
-    if (!text.trim() || disabled) return;
-    onSubmit(text.trim());
-    setText('');
-    if (taRef.current) taRef.current.style.height = 'auto';
-  }
-
-  function onKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
-  }
-
-  function onChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    setText(e.target.value);
-    const ta = e.target;
-    ta.style.height = 'auto';
-    ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
-  }
-
-  return (
-    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
-      <textarea
-        ref={taRef}
-        value={text}
-        onChange={onChange}
-        onKeyDown={onKeyDown}
-        disabled={disabled}
-        placeholder="Escribe tu respuesta libremente…"
-        rows={1}
-        style={{
-          flex: 1, padding: '12px 16px', borderRadius: 14,
-          border: '1.5px solid rgba(28,40,64,0.15)',
-          fontFamily: 'var(--font-body)', fontSize: 'var(--chat-font)',
-          resize: 'none', outline: 'none', background: '#fff',
-          color: '#1a2133', lineHeight: 1.5, overflow: 'hidden',
-        }}
-      />
-      <button
-        onClick={submit}
-        disabled={disabled || !text.trim()}
-        style={{
-          width: 44, height: 44, borderRadius: '50%',
-          border: 'none', background: '#1C2840', color: '#fff',
-          cursor: 'pointer', flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}
-      >
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
-        </svg>
-      </button>
-    </div>
-  );
-}
-
-function formatAnswerForDisplay(answer: unknown, step: FlowStep): string {
-  if (answer === null || answer === undefined) return '';
-  if (Array.isArray(answer)) return answer.join(', ');
-  if (typeof answer === 'boolean') return answer ? 'Sí' : 'No';
-  return String(answer);
-}
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function typingDelay(text: string) {
-  return Math.min((text.length / 580) * 1000, 2500);
 }
