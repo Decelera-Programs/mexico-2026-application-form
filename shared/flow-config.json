@@ -1,0 +1,480 @@
+{
+  "id": "decelera-latam26-application-v2",
+  "version": "3.0.0",
+  "title": "Aplica a Decelera LATAM 2026",
+  "welcomeMessage": "¡Hola! Soy Paco, tu guía para la aplicación a Decelera LATAM 2026.\n\nSomos un fondo founder-first — ofrecemos hasta $1M en initial funding, $1M reservado para follow-on, y una residencia 100% sponsored de 7 días para encontrar nuestras próximas startups.\n\nSon 5 pasos, unos 15 minutos. Puedes revisar tus respuestas antes de enviar.\n\nAl continuar, aceptas que tus datos sean procesados para la evaluación de tu candidatura.",
+  "completionMessage": "¡Aplicación enviada! 🚀\n\nGracias por aplicar a Decelera LATAM 2026. El equipo de inversión revisa cada aplicación personalmente — tendrás respuesta en un máximo de 7 días.\n\nMientras tanto, sigue construyendo 💪\n\n¿Preguntas? Escríbenos a hola@decelera.com",
+  "declineMessage": "Gracias por compartir tu proyecto. Revisamos todas las aplicaciones con cuidado.",
+  "startStep": "startup_name",
+  "steps": {
+
+    "startup_name": {
+      "id": "startup_name",
+      "type": "text",
+      "question": "¿Cómo se llama tu startup?",
+      "placeholder": "Nombre de tu startup",
+      "required": true,
+      "nextStep": "founder_full_name"
+    },
+
+    "founder_full_name": {
+      "id": "founder_full_name",
+      "type": "text",
+      "question": "¿Cuál es tu nombre completo?",
+      "placeholder": "Nombre y apellidos",
+      "required": true,
+      "nextStep": "founder_email"
+    },
+
+    "founder_email": {
+      "id": "founder_email",
+      "type": "email",
+      "question": "¿Y tu email profesional? 📧\n\nPor ahí te contactaremos si avanzas en el proceso.",
+      "placeholder": "tu@startup.com",
+      "required": true,
+      "nextStep": "section_company"
+    },
+
+    "section_company": {
+      "id": "section_company",
+      "type": "statement",
+      "question": "Paso 1 / 5 — La empresa\n\nEl producto, el mercado, y el insight que lo fundamenta todo. Signal-first.",
+      "nextStep": "problem"
+    },
+
+    "problem": {
+      "id": "problem",
+      "type": "textarea",
+      "question": "En máximo tres líneas, ¿qué problema central estás resolviendo?",
+      "placeholder": "El problema que resuelves...",
+      "required": true,
+      "maxLength": 500,
+      "nextStep": "demo_url"
+    },
+
+    "demo_url": {
+      "id": "demo_url",
+      "type": "url",
+      "question": "¿Cuál es la URL que mejor muestra lo que estás construyendo?\n\nPuede ser demo, producto, MVP o landing.",
+      "placeholder": "https://",
+      "required": false,
+      "nextStep": "industry_insight"
+    },
+
+    "industry_insight": {
+      "id": "industry_insight",
+      "type": "textarea",
+      "question": "Cuéntanos algo sobre tu industria que los grandes incumbentes no entienden o ignoran.",
+      "placeholder": "El insight que otros no ven (1–2 frases)...",
+      "required": true,
+      "maxLength": 400,
+      "nextStep": "defensibility"
+    },
+
+    "defensibility": {
+      "id": "defensibility",
+      "type": "select",
+      "question": "Un competidor levanta €100M mañana para matarte. ¿Qué es lo único que no puede comprar ni copiar en 12 meses?",
+      "options": [
+        "Data moat — datos propios/exclusivos/longitudinales que mejoran con el uso",
+        "Network effects — efectos de red",
+        "Deep integration / switching costs elevados",
+        "Ventaja técnica difícil de replicar",
+        "Regulación / licencias",
+        "Brand / GTM",
+        "Ninguno claramente todavía"
+      ],
+      "required": true,
+      "nextStep": "third_party_dependence"
+    },
+
+    "third_party_dependence": {
+      "id": "third_party_dependence",
+      "type": "select",
+      "question": "¿Qué tan dependiente es tu valor core de APIs de terceros (OpenAI, AWS, etc.)?",
+      "options": [
+        "Independiente — los usamos para tareas no-core, el core es nuestro",
+        "Híbrido — mejoramos modelos de terceros con nuestros datos / fine-tuning",
+        "Dependiente — somos una capa superior / UX sobre APIs existentes"
+      ],
+      "required": true,
+      "nextStep": "sector"
+    },
+
+    "sector": {
+      "id": "sector",
+      "type": "select",
+      "question": "¿En qué sector opera tu startup?",
+      "options": [
+        "AI/ML",
+        "FinTech",
+        "HealthTech",
+        "EdTech",
+        "Climate",
+        "Cybersec",
+        "SaaS B2B",
+        "Deep Tech",
+        "Consumer",
+        "Otro"
+      ],
+      "required": true,
+      "nextStep": "business_model"
+    },
+
+    "business_model": {
+      "id": "business_model",
+      "type": "select",
+      "question": "¿Cómo describirías tu modelo de negocio?",
+      "options": ["B2B", "B2C", "B2B2C", "Marketplace", "SaaS", "Otro"],
+      "required": true,
+      "nextStep": "potential_clients"
+    },
+
+    "potential_clients": {
+      "id": "potential_clients",
+      "type": "number",
+      "question": "¿Aproximadamente cuántos clientes potenciales hay en tu mercado objetivo? (número total)",
+      "placeholder": "ej. 50000",
+      "required": true,
+      "nextStep": "why_now_select"
+    },
+
+    "why_now_select": {
+      "id": "why_now_select",
+      "type": "select",
+      "question": "¿Por qué es posible este negocio ahora? ¿Qué tailwind externo está acelerando más tu mercado?",
+      "options": [
+        "Nuevo compliance regulatorio obligatorio — compradores legalmente forzados a adoptar",
+        "Desequilibrio extremo oferta/demanda",
+        "GenAI / automatización a gran escala — reducción de costes 10x o nueva capacidad",
+        "Platform shift (ej. on-prem → cloud)",
+        "Ninguno / crecimiento general"
+      ],
+      "required": true,
+      "nextStep": "why_now_validation"
+    },
+
+    "why_now_validation": {
+      "id": "why_now_validation",
+      "type": "textarea",
+      "question": "Explícalo en un par de líneas. Si puedes citar la ley, tecnología o dato de mercado que lo valida, mejor.",
+      "placeholder": "La evidencia de que ahora es el momento...",
+      "required": true,
+      "maxLength": 400,
+      "nextStep": "section_founders"
+    },
+
+    "section_founders": {
+      "id": "section_founders",
+      "type": "statement",
+      "question": "Paso 2 / 5 — Los founders\n\n¿Quién hay detrás? Este bloque vale 35 puntos.",
+      "nextStep": "technical_cofounder"
+    },
+
+    "technical_cofounder": {
+      "id": "technical_cofounder",
+      "type": "boolean",
+      "question": "¿Hay un co-founder técnico en el equipo? 🛠️",
+      "required": true,
+      "nextStep": "number_of_founders"
+    },
+
+    "number_of_founders": {
+      "id": "number_of_founders",
+      "type": "select",
+      "question": "¿Cuántos founders full-time hay en el equipo?",
+      "options": ["1", "2", "3", "4", "4+"],
+      "required": true,
+      "nextStep": "founder_linkedin"
+    },
+
+    "founder_linkedin": {
+      "id": "founder_linkedin",
+      "type": "url",
+      "question": "Comparte tu LinkedIn — y el del resto de founders si los hay 👀\n\nSiempre lo miramos antes de cualquier llamada.",
+      "placeholder": "https://linkedin.com/in/...",
+      "required": false,
+      "nextStep": "team_milestone"
+    },
+
+    "team_milestone": {
+      "id": "team_milestone",
+      "type": "select",
+      "question": "¿Cuál es el milestone colectivo más relevante del equipo?",
+      "options": [
+        "Serial founder, exit >€10M",
+        "Serial founder, exit <€10M",
+        "Serial founder, sin exit",
+        "Early employee (<20) en un unicornio / scale-up",
+        "PhD o investigador senior en el área",
+        "Senior corporativo, 10+ años en el sector",
+        "Founder por primera vez"
+      ],
+      "required": true,
+      "nextStep": "team_milestone_detail"
+    },
+
+    "team_milestone_detail": {
+      "id": "team_milestone_detail",
+      "type": "textarea",
+      "question": "Cuéntanos más sobre ese milestone.\n\n¿Founder por primera vez? Lo más impresionante que hayas construido, hackeado u organizado en los últimos 3 años sin presupuesto.",
+      "placeholder": "El logro más relevante...",
+      "required": true,
+      "maxLength": 600,
+      "nextStep": "sector_experience"
+    },
+
+    "sector_experience": {
+      "id": "sector_experience",
+      "type": "select",
+      "question": "¿Cuántos años de experiencia acumulada tiene el equipo en este sector específico?",
+      "options": ["0–2 años", "2–5 años", "6–12 años", "12+ años"],
+      "required": true,
+      "nextStep": "most_significant_milestone"
+    },
+
+    "most_significant_milestone": {
+      "id": "most_significant_milestone",
+      "type": "select",
+      "question": "Desde el lanzamiento, ¿cuál es el milestone más significativo que habéis logrado?",
+      "options": [
+        "MVP construido y lanzado sin funding externo ni devs de terceros",
+        "Convencimos a un senior Tier-1 de dejar su trabajo por salario mínimo",
+        "3+ LOIs o pilotos firmados antes de tener producto terminado",
+        "€5k+ MRR (o uso equivalente) en las primeras 12 semanas del lanzamiento",
+        "Ninguno todavía"
+      ],
+      "required": true,
+      "nextStep": "section_traction"
+    },
+
+    "section_traction": {
+      "id": "section_traction",
+      "type": "statement",
+      "question": "Paso 3 / 5 — Tracción\n\nNúmeros, no narrativa. 30 puntos en juego. Selecciona el bracket que mejor describe tu situación.",
+      "nextStep": "north_star"
+    },
+
+    "north_star": {
+      "id": "north_star",
+      "type": "text",
+      "question": "¿Cuál es tu North Star metric y su valor actual?",
+      "placeholder": "ej. €18k MRR, 45k MAUs",
+      "required": true,
+      "nextStep": "mom_growth"
+    },
+
+    "mom_growth": {
+      "id": "mom_growth",
+      "type": "select",
+      "question": "¿Cuál ha sido el crecimiento MoM promedio en los últimos 3 meses?",
+      "options": [
+        ">20%",
+        "10–20%",
+        "5–10%",
+        "<5% o N/A — construyendo / pivotando"
+      ],
+      "required": true,
+      "nextStep": "net_burn"
+    },
+
+    "net_burn": {
+      "id": "net_burn",
+      "type": "select",
+      "question": "¿Cuál ha sido el net burn mensual promedio en los últimos 3 meses?",
+      "options": ["<€10k", "€10–25k", "€25–50k", "€50–100k", ">€100k"],
+      "required": true,
+      "nextStep": "churn"
+    },
+
+    "churn": {
+      "id": "churn",
+      "type": "select",
+      "question": "¿Cuál ha sido el churn mensual promedio en los últimos 3 meses?",
+      "options": ["<2%", "2–5%", "5–10%", ">10%"],
+      "required": true,
+      "nextStep": "acquisition_channel"
+    },
+
+    "acquisition_channel": {
+      "id": "acquisition_channel",
+      "type": "select",
+      "question": "¿Cómo estáis adquiriendo clientes?",
+      "options": [
+        ">80% orgánico (word-of-mouth / SEO / loops)",
+        "50–80% orgánico, el resto paid",
+        "<50% orgánico — heavy ads / sales"
+      ],
+      "required": true,
+      "nextStep": "section_equity"
+    },
+
+    "section_equity": {
+      "id": "section_equity",
+      "type": "statement",
+      "question": "Paso 4 / 5 — Equity & la ronda\n\nEstructura legal y estado del fundraising. Los hard stops se evalúan al enviar.",
+      "nextStep": "incorporation_location"
+    },
+
+    "incorporation_location": {
+      "id": "incorporation_location",
+      "type": "select",
+      "question": "¿Dónde está constituida tu empresa?",
+      "options": ["España", "Portugal", "Francia", "Italia", "UK", "UE", "LATAM", "Brasil", "Otro"],
+      "required": true,
+      "nextStep": "operations_location"
+    },
+
+    "operations_location": {
+      "id": "operations_location",
+      "type": "multiselect",
+      "question": "¿Dónde opera la empresa? Selecciona todos los que apliquen.",
+      "options": [
+        "México",
+        "Colombia",
+        "Chile",
+        "Argentina",
+        "Perú",
+        "Uruguay",
+        "Centroamérica & Caribe",
+        "USA",
+        "Brasil",
+        "Otro LATAM",
+        "Europa"
+      ],
+      "required": true,
+      "nextStep": "company_start_year"
+    },
+
+    "company_start_year": {
+      "id": "company_start_year",
+      "type": "number",
+      "question": "¿En qué año empezó a operar la empresa?",
+      "placeholder": "ej. 2024",
+      "required": true,
+      "nextStep": "founding_equity"
+    },
+
+    "founding_equity": {
+      "id": "founding_equity",
+      "type": "select",
+      "question": "¿Qué porcentaje del equity está en manos del equipo fundador, incluyendo el option pool?",
+      "options": [">80%", "60–80%", "40–60%", "<40%"],
+      "required": true,
+      "nextStep": "total_raised"
+    },
+
+    "total_raised": {
+      "id": "total_raised",
+      "type": "select",
+      "question": "¿Cuánto habéis levantado hasta la fecha, excluyendo la ronda actual? (equity, notas, SAFEs)",
+      "options": ["<€500k", "€500k–1.5M", "€1.5M–2.5M", ">€2.5M"],
+      "required": true,
+      "nextStep": "round_size"
+    },
+
+    "round_size": {
+      "id": "round_size",
+      "type": "number",
+      "question": "¿Cuál es el tamaño total de vuestra ronda actual? (€)",
+      "placeholder": "ej. 1000000",
+      "required": true,
+      "nextStep": "round_committed"
+    },
+
+    "round_committed": {
+      "id": "round_committed",
+      "type": "select",
+      "question": "¿Cuánto de la ronda está comprometido?",
+      "options": ["0–25%", "25–50%", "50–75%", "75%+"],
+      "required": true,
+      "nextStep": "pre_money_valuation"
+    },
+
+    "pre_money_valuation": {
+      "id": "pre_money_valuation",
+      "type": "number",
+      "question": "¿Cuál es la valoración pre-money (o el cap)? (€)",
+      "placeholder": "ej. 5000000",
+      "required": true,
+      "nextStep": "runway"
+    },
+
+    "runway": {
+      "id": "runway",
+      "type": "select",
+      "question": "¿Cuál es vuestra runway actual?",
+      "options": ["0–2 meses", "2–5 meses", "6–12 meses", "12+ meses"],
+      "required": true,
+      "nextStep": "pitch_deck_url"
+    },
+
+    "pitch_deck_url": {
+      "id": "pitch_deck_url",
+      "type": "url",
+      "question": "Comparte un link a tu pitch deck (PDF — Google Drive, Dropbox, Docsend o similar).",
+      "placeholder": "https://...",
+      "required": false,
+      "nextStep": "section_wrap"
+    },
+
+    "section_wrap": {
+      "id": "section_wrap",
+      "type": "statement",
+      "question": "Paso 5 / 5 — Para cerrar\n\nCasi terminamos. Solo un minuto más.",
+      "nextStep": "how_heard"
+    },
+
+    "how_heard": {
+      "id": "how_heard",
+      "type": "select",
+      "question": "¿Cómo nos encontraste?",
+      "options": ["LinkedIn", "Referral", "Evento", "Prensa", "Otro"],
+      "required": true,
+      "conditions": [
+        { "if": { "fieldId": "how_heard", "operator": "equals", "value": "Referral" }, "then": "referral_name" }
+      ],
+      "nextStep": "network_contact"
+    },
+
+    "referral_name": {
+      "id": "referral_name",
+      "type": "text",
+      "question": "¿Quién te refirió? 🤝",
+      "placeholder": "Nombre de quien te recomendó",
+      "required": true,
+      "nextStep": "network_contact"
+    },
+
+    "network_contact": {
+      "id": "network_contact",
+      "type": "boolean",
+      "question": "¿Conoces a alguien de la red de Decelera — un mentor, founder del portfolio o LP?",
+      "required": true,
+      "conditions": [
+        { "if": { "fieldId": "network_contact", "operator": "equals", "value": "true" }, "then": "network_contact_name" }
+      ],
+      "nextStep": "additional_comments"
+    },
+
+    "network_contact_name": {
+      "id": "network_contact_name",
+      "type": "text",
+      "question": "¿Quién es y cuál es vuestra relación?",
+      "placeholder": "ej. María García — mentor del portfolio",
+      "required": true,
+      "nextStep": "additional_comments"
+    },
+
+    "additional_comments": {
+      "id": "additional_comments",
+      "type": "textarea",
+      "question": "¿Algo más que quieras compartir que no te hayamos preguntado? (opcional)",
+      "placeholder": "Espacio libre...",
+      "required": false,
+      "maxLength": 800,
+      "nextStep": null
+    }
+
+  }
+}

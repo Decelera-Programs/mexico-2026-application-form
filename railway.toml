@@ -1,0 +1,20 @@
+# railway.toml — monorepo configuration for Railway
+# Docs: https://docs.railway.app/reference/config-as-code
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm install --include=dev && npm run build --workspace=frontend && npm run build --workspace=backend"
+
+[deploy]
+startCommand = "node backend/dist/db/migrate.js && npm run start"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+[[services]]
+name = "app"
+
+[[services.envVars]]
+name = "NODE_ENV"
+value = "production"
