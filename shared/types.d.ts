@@ -52,6 +52,7 @@ export interface ApplicationSession {
   currentStepId: string;
   status: 'in_progress' | 'completed' | 'abandoned';
   answers: Record<string, unknown>;
+  hardStop?: string | null;
   attioPersonId?: string;
   attioCompanyId?: string;
   syncedToAttio: boolean;

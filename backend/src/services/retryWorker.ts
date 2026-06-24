@@ -17,7 +17,8 @@ export async function runRetryWorker(): Promise<void> {
   console.log(`[RetryWorker] ${sessions.length} session(s) pending Attio sync`);
 
   for (const session of sessions) {
-    const result = await syncSessionToAttio(session.answers);
+    const declined = !!session.hardStop;
+    const result = await syncSessionToAttio(session.answers, declined);
 
     if (result.ok) {
       await updateAttioIds(
@@ -26,10 +27,10 @@ export async function runRetryWorker(): Promise<void> {
         result.data.companyId,
         result.data.dealId
       );
-      console.log(`[RetryWorker] ✅ Session ${session.id} synced to Attio — deal: ${result.data.dealId}`);
+      console.log(`[RetryWorker] ✅ Session ${session.id} synced — deal: ${result.data.dealId}${declined ? ' [Not qualified]' : ''}`);
     } else {
       await incrementSyncAttempts(session.id);
-      console.warn(`[RetryWorker] ⚠️  Session ${session.id} sync failed: ${result.error}`);
+      console.warn(`[RetryWorker] ⚠️  Session ${session.id} failed (attempt ${session.syncedToAttio}): ${result.error}`);
     }
   }
 }

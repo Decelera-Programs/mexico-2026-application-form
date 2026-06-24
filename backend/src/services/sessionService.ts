@@ -9,6 +9,7 @@ function rowToSession(row: Record<string, unknown>): ApplicationSession {
     currentStepId: row.current_step_id as string,
     status: row.status as ApplicationSession['status'],
     answers: row.answers as Record<string, unknown>,
+    hardStop: (row.hard_stop as string | null) ?? null,
     attioPersonId: row.attio_person_id as string | undefined,
     attioCompanyId: row.attio_company_id as string | undefined,
     syncedToAttio: row.synced_to_attio as boolean,
@@ -108,7 +109,6 @@ export async function getUnsyncedSessions(maxAttempts = 5): Promise<ApplicationS
     `SELECT * FROM application_sessions
      WHERE synced_to_attio = FALSE
        AND status = 'completed'
-       AND (hard_stop IS NULL OR hard_stop = '')
        AND sync_attempts < $1
      ORDER BY created_at ASC
      LIMIT 50`,
@@ -166,19 +166,21 @@ export async function bulkPatchAnswers(
   );
 }
 
+// Returns true if the session was newly completed, false if it was already completed (duplicate submit).
 export async function completeSession(
   sessionId: string,
   answers: Record<string, unknown>,
   hardStop: string | null
-): Promise<void> {
-  await pool.query(
+): Promise<boolean> {
+  const result = await pool.query(
     `UPDATE application_sessions
      SET answers         = answers || $1::jsonb,
          current_step_id = 'complete',
          status          = 'completed',
          hard_stop       = $2,
          updated_at      = NOW()
-     WHERE id = $3`,
+     WHERE id = $3 AND status != 'completed'`,
     [JSON.stringify(answers), hardStop, sessionId]
   );
+  return (result.rowCount ?? 0) > 0;
 }

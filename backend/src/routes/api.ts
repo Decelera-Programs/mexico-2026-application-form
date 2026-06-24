@@ -102,7 +102,11 @@ router.post('/sessions/:id/submit', async (req: Request, res: Response) => {
     if (!answers) return res.status(400).json({ error: 'answers required' });
 
     const hardStop = evaluateHardStops(answers);
-    await completeSession(req.params.id, answers, hardStop?.reason ?? null);
+    const wasNewlyCompleted = await completeSession(req.params.id, answers, hardStop?.reason ?? null);
+
+    if (!wasNewlyCompleted) {
+      return res.json({ ok: true, isDeclined: !!session.answers.__hard_stop, alreadySubmitted: true });
+    }
 
     const attioResult = await syncSessionToAttio(answers, !!hardStop);
     if (attioResult.ok) {

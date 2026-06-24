@@ -98,11 +98,6 @@ const T_ACQ_CHANNEL: Record<string, string> = {
   '<50% organic — heavy ads / sales':           '<50% organic; we rely heavily on Ads/Sales teams.',
 };
 
-const T_INCORPORATION: Record<string, string> = {
-  'Spain': 'Spain', 'Portugal': 'Portugal', 'France': 'France', 'Italy': 'Italy',
-  'UK': 'U.K.', 'EU': 'E.U.', 'LATAM': 'LATAM', 'Brazil': 'Other', 'Other': 'Other',
-};
-
 
 const T_EQUITY: Record<string, string> = {
   '>80%': '> 80%', '60–80%': '60% - 80%', '40–60%': '40% - 60%', '<40%': '< 40%',
@@ -320,7 +315,7 @@ async function createDeal(
   addOpt ('organic_users',        T_ACQ_CHANNEL,  a.acquisition_channel);
 
   // ── Block 5: Equity & the round
-  addOpt ('constitution_company', T_INCORPORATION,    a.incorporation_location);
+  addOptDirect('constitution_company', a.incorporation_location);
   addOptsDirect('operations_location', a.operations_location);  // multiselect, exact Attio titles
   addNum ('constitution_year',    a.company_start_year);
   addOpt ('equity',               T_EQUITY,           a.founding_equity);
