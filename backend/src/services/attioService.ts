@@ -360,7 +360,7 @@ async function addDealToLatamList(dealId: string, declined: boolean): Promise<At
         entry_values: {
           fund:         opt('LATAM'),
           date_sourced: date(today),
-          status:       status(declined ? 'Not qualified' : 'Contacted'),
+          status:       status(declined ? 'Not qualified' : 'Qualified'),
         },
       },
     }),
