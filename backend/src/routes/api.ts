@@ -104,19 +104,17 @@ router.post('/sessions/:id/submit', async (req: Request, res: Response) => {
     const hardStop = evaluateHardStops(answers);
     await completeSession(req.params.id, answers, hardStop?.reason ?? null);
 
-    if (!hardStop) {
-      const attioResult = await syncSessionToAttio(answers);
-      if (attioResult.ok) {
-        await updateAttioIds(
-          req.params.id,
-          attioResult.data.personId,
-          attioResult.data.companyId,
-          attioResult.data.dealId
-        );
-        console.log(`Session ${req.params.id} synced to Attio — deal: ${attioResult.data.dealId}`);
-      } else {
-        console.warn(`Attio sync deferred for session ${req.params.id}: ${attioResult.error}`);
-      }
+    const attioResult = await syncSessionToAttio(answers, !!hardStop);
+    if (attioResult.ok) {
+      await updateAttioIds(
+        req.params.id,
+        attioResult.data.personId,
+        attioResult.data.companyId,
+        attioResult.data.dealId
+      );
+      console.log(`Session ${req.params.id} synced to Attio — deal: ${attioResult.data.dealId}${hardStop ? ' [Not qualified]' : ''}`);
+    } else {
+      console.warn(`Attio sync deferred for session ${req.params.id}: ${attioResult.error}`);
     }
 
     const successMessage = 'Thanks for applying to Decelera LATAM 2026. The investment team reviews every application — you\'ll hear from us within 7 days. Questions: hola@decelera.com';

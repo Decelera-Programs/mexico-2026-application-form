@@ -348,7 +348,7 @@ async function createDeal(
 
 // ── Step 5: Add Deal to LATAM list ──────────────────────────────────────────
 
-async function addDealToLatamList(dealId: string): Promise<AttioResult<void>> {
+async function addDealToLatamList(dealId: string, declined: boolean): Promise<AttioResult<void>> {
   const today = new Date().toISOString().split('T')[0];
 
   const r = await attioFetch<unknown>(`/lists/${LATAM_LIST_SLUG}/entries`, {
@@ -360,7 +360,7 @@ async function addDealToLatamList(dealId: string): Promise<AttioResult<void>> {
         entry_values: {
           fund:         opt('LATAM'),
           date_sourced: date(today),
-          status:       status('Contacted'),
+          status:       status(declined ? 'Not qualified' : 'Contacted'),
         },
       },
     }),
@@ -379,7 +379,8 @@ export interface SyncResult {
 }
 
 export async function syncSessionToAttio(
-  answers: Record<string, unknown>
+  answers: Record<string, unknown>,
+  declined: boolean = false
 ): Promise<AttioResult<SyncResult>> {
   if (!answers.founder_email) {
     return { ok: false, error: 'Missing founder email' };
@@ -409,7 +410,7 @@ export async function syncSessionToAttio(
   if (!dealR.ok) return dealR;
   const dealId = dealR.data.id;
 
-  const listR = await addDealToLatamList(dealId);
+  const listR = await addDealToLatamList(dealId, declined);
   if (!listR.ok) console.warn(`[Attio] list add failed: ${listR.error}`);
 
   return { ok: true, data: { personId, companyId, dealId, addedToList: listR.ok } };
