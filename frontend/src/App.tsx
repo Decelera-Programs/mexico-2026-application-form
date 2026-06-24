@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { createSession, loadSession, saveDraft, submitApplication } from './hooks/useApi';
+import { createSession, loadSession, submitApplication } from './hooks/useApi';
 import { Confetti } from './components/Confetti';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ const BLOCKS: BlockDef[] = [
       {
         id: 'defensibility', required: true,
         label: 'A competitor raises €100M tomorrow to kill your startup. What\'s the one thing they can\'t buy or copy in 12 months?',
-        type: 'select',
+        type: 'multiselect',
         options: [
           'Data moat — proprietary/exclusive/longitudinal data improving with use',
           'Network effects',
@@ -72,8 +72,14 @@ const BLOCKS: BlockDef[] = [
           'Dependent — a superior layer / UX on top of existing APIs',
         ],
       },
-      { id: 'sector',            required: true, label: 'Which sector?',                    type: 'select', options: ['AI/ML', 'FinTech', 'HealthTech', 'EdTech', 'Climate', 'Cybersec', 'SaaS B2B', 'Deep Tech', 'Consumer', 'Other'] },
-      { id: 'business_model',    required: true, label: 'How would you describe your business model?', type: 'select', options: ['B2B', 'B2C', 'B2B2C', 'Marketplace', 'SaaS', 'Other'] },
+      {
+        id: 'sector', required: true, label: 'Which sector(s)?', type: 'multiselect',
+        options: ['AI / ML', 'FinTech', 'HealthTech', 'EdTech', 'ClimateTech', 'DeepTech', 'Web3 & Blockchain', 'AgriTech', 'InsurTech', 'IndustrialTech', 'MarketingTech', 'FoodTech', 'TransportTech', 'E-Commerce', 'Social Innovation', 'Circular Economy', 'Impact & Social Enterprises', 'AR/VR/XR', 'Advanced Materials', 'Retail', 'SpaceTech', 'TravelTech', 'Other'],
+      },
+      {
+        id: 'business_model', required: true, label: 'How would you describe your business model? Select all that apply.', type: 'multiselect',
+        options: ['B2B', 'B2C', 'SaaS', 'Marketplace', 'Usage-based', 'Transaction-based', 'Enterprise / Contracts', 'Licensing', 'Hardware', 'Advertising', 'Consulting', 'Other'],
+      },
       { id: 'potential_clients', required: true, label: 'Roughly how many potential clients are in your target market?', type: 'number', placeholder: 'e.g. 50000' },
       {
         id: 'why_now_select', required: true,
@@ -100,8 +106,8 @@ const BLOCKS: BlockDef[] = [
       { id: 'founder_linkedin',     required: false, label: 'LinkedIn profile(s)', hint: 'Yours and your co-founders\'. We always check.', type: 'url', placeholder: 'https://linkedin.com/in/...' },
       {
         id: 'team_milestone', required: true,
-        label: 'What is the team\'s most relevant collective milestone?',
-        type: 'select',
+        label: 'What is the team\'s most relevant collective milestone? Select all that apply.',
+        type: 'multiselect',
         options: [
           'Serial founder, exit >€10M',
           'Serial founder, exit <€10M',
@@ -116,8 +122,8 @@ const BLOCKS: BlockDef[] = [
       { id: 'sector_experience',            required: true, label: 'How many years of cumulative experience does the team have in this specific sector?', type: 'select', options: ['0–2 years', '2–5 years', '6–12 years', '12+ years'] },
       {
         id: 'most_significant_milestone', required: true,
-        label: 'Since launch, what is your most significant milestone?',
-        type: 'select',
+        label: 'Since launch, what is your most significant milestone? Select all that apply.',
+        type: 'multiselect',
         options: [
           'Built and launched the MVP with no external funding / 3rd-party devs',
           'Convinced a Tier-1 senior to leave their job for min salary',
