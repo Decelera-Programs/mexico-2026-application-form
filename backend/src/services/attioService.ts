@@ -9,6 +9,8 @@
  *   5. Add Deal to "Startups Deal Flow LATAM" list with initial entry values
  */
 
+import { scoreAnswers, ScoreResult } from './scoringService';
+
 const ATTIO_API  = 'https://api.attio.com/v2';
 const ATTIO_TOKEN = process.env.ATTIO_API_KEY;
 
@@ -348,8 +350,39 @@ async function createDeal(
 
 // ── Step 5: Add Deal to LATAM list ──────────────────────────────────────────
 
-async function addDealToLatamList(dealId: string, declined: boolean): Promise<AttioResult<void>> {
+const ANALYSTS_QUALIFIED    = ['Alejandro', 'Diego', 'Carlota', 'Lorenzo', 'Raquel', 'Luiza'];
+const ANALYSTS_NOT_QUALIFIED = ['Alejandro', 'Diego', 'Carlota'];
+function randomFrom(arr: string[]): string { return arr[Math.floor(Math.random() * arr.length)]; }
+
+async function addDealToLatamList(
+  dealId: string,
+  declined: boolean,
+  score: ScoreResult
+): Promise<AttioResult<void>> {
   const today = new Date().toISOString().split('T')[0];
+
+  const entryValues: Record<string, unknown> = {
+    fund:              opt('LATAM'),
+    date_sourced:      date(today),
+    status:            status(declined ? 'Not qualified' : 'Qualified'),
+    form_score:        num(score.total),
+    form_sumary:       txt(score.summary),
+    green_flags_form:  score.greenFlags  ? txt(score.greenFlags)  : undefined,
+    yellow_flags_form: score.yellowFlags ? txt(score.yellowFlags) : undefined,
+    red_flags_form_7:  score.redFlags    ? txt(score.redFlags)    : undefined,
+  };
+
+  // Remove undefined values
+  for (const k of Object.keys(entryValues)) {
+    if (entryValues[k] === undefined) delete entryValues[k];
+  }
+
+  if (declined) {
+    entryValues['not_qualified_reviewer'] = opt(randomFrom(ANALYSTS_NOT_QUALIFIED));
+  } else {
+    entryValues['tier_5']           = status(score.tier);
+    entryValues['pre_call_evaluator'] = opt(randomFrom(ANALYSTS_QUALIFIED));
+  }
 
   const r = await attioFetch<unknown>(`/lists/${LATAM_LIST_SLUG}/entries`, {
     method: 'POST',
@@ -357,11 +390,7 @@ async function addDealToLatamList(dealId: string, declined: boolean): Promise<At
       data: {
         parent_record_id: dealId,
         parent_object:    'deals',
-        entry_values: {
-          fund:         opt('LATAM'),
-          date_sourced: date(today),
-          status:       status(declined ? 'Not qualified' : 'Qualified'),
-        },
+        entry_values:     entryValues,
       },
     }),
   });
@@ -410,7 +439,10 @@ export async function syncSessionToAttio(
   if (!dealR.ok) return dealR;
   const dealId = dealR.data.id;
 
-  const listR = await addDealToLatamList(dealId, declined);
+  const score = scoreAnswers(answers);
+  console.log(`[Score] ${answers.startup_name} — total: ${score.total}/85, tier: ${score.tier}`);
+
+  const listR = await addDealToLatamList(dealId, declined, score);
   if (!listR.ok) console.warn(`[Attio] list add failed: ${listR.error}`);
 
   return { ok: true, data: { personId, companyId, dealId, addedToList: listR.ok } };
