@@ -191,7 +191,15 @@ async function upsertPerson(
     name:            [{ first_name: firstName, last_name: lastName, full_name: fullName.trim() }],
     email_addresses: [{ email_address: email.trim().toLowerCase() }],
   };
-  if (linkedin) values['linkedin'] = txt(linkedin);
+  if (linkedin) {
+    const handle = linkedin.trim()
+      .replace(/\/$/, '')
+      .split('/in/')[1]
+      ?.split('/')[0]
+      ?.split('?')[0]
+      ?? linkedin.trim();
+    if (handle) values['linkedin'] = txt(handle);
+  }
 
   const r = await attioFetch<{ data: { id: { record_id: string } } }>(
     '/objects/people/records?matching_attribute=email_addresses',
