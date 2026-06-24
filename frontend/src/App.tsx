@@ -758,6 +758,13 @@ export default function App() {
   // Keep answersRef in sync for use in callbacks without stale closure issues
   useEffect(() => { answersRef.current = answers; }, [answers]);
 
+  // Save immediately when the visible block changes (user scrolled to a new section)
+  useEffect(() => {
+    if (appState !== 'form' || !sessionId) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    saveDraft(sessionId, answersRef.current, BLOCKS[activeBlock]?.id ?? 'identity').catch(() => {});
+  }, [activeBlock, appState, sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Auto-save draft 3s after last answer change
   useEffect(() => {
     if (appState !== 'form' || !sessionId) return;
@@ -766,7 +773,7 @@ export default function App() {
       saveDraft(sessionId, answersRef.current, BLOCKS[activeBlock]?.id ?? 'identity').catch(() => {});
     }, 3000);
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
-  }, [answers, appState, sessionId, activeBlock]);
+  }, [answers, appState, sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Warn on unload
   useEffect(() => {

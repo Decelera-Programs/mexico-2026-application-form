@@ -174,7 +174,7 @@ export async function completeSession(
 ): Promise<boolean> {
   const result = await pool.query(
     `UPDATE application_sessions
-     SET answers         = answers || $1::jsonb,
+     SET answers         = $1::jsonb,
          current_step_id = 'complete',
          status          = 'completed',
          hard_stop       = $2,
