@@ -15,7 +15,7 @@ const ATTIO_API  = 'https://api.attio.com/v2';
 const ATTIO_TOKEN = process.env.ATTIO_API_KEY;
 
 const LATAM_LIST_SLUG          = 'startups_deal_flow_2';
-const DEAL_STAGE               = 'Leads Mexico 2026';
+const DEAL_STAGE               = 'Mexico 2026';
 const DEAL_OWNER_MEMBER_ID     = '2f347934-032a-411c-a5ef-169cd635dd05'; // carlos@decelera.com
 
 // ── Value translators ────────────────────────────────────────────────────────
@@ -353,16 +353,29 @@ async function createDeal(
 
 // ── Step 5: Add Deal to LATAM list ──────────────────────────────────────────
 
-const ANALYSTS_QUALIFIED    = ['Alejandro', 'Diego', 'Carlota', 'Lorenzo', 'Raquel', 'Luiza'];
+const ANALYSTS_QUALIFIED     = ['Alejandro', 'Diego', 'Carlota', 'Lorenzo', 'Raquel', 'Luiza'];
 const ANALYSTS_NOT_QUALIFIED = ['Alejandro', 'Diego', 'Carlota'];
 function randomFrom(arr: string[]): string { return arr[Math.floor(Math.random() * arr.length)]; }
+
+const HARD_STOP_LABELS: Record<string, string> = {
+  brazil_incorporation: '🔴 Hard stop: Company incorporated in Brazil',
+  no_latam_operation:   '🔴 Hard stop: No LATAM operations',
+  pre_2023:             '🔴 Hard stop: Company started operating before 2023',
+  low_equity:           '🔴 Hard stop: Founders hold <40% equity',
+  beyond_seed:          '🔴 Hard stop: Raised >€2.5M (beyond seed)',
+  high_burn:            '🔴 Hard stop: Monthly burn >€100k',
+  long_runway:          '🔴 Hard stop: Runway 12+ months — not actively raising',
+  low_valuation:        '🔴 Hard stop: Pre-money valuation <€10M',
+};
 
 async function addDealToLatamList(
   dealId: string,
   declined: boolean,
-  score: ScoreResult
+  score: ScoreResult,
+  hardStopReason?: string | null
 ): Promise<AttioResult<void>> {
   const today = new Date().toISOString().split('T')[0];
+  const hardStopLabel = hardStopReason ? (HARD_STOP_LABELS[hardStopReason] ?? `🔴 Hard stop: ${hardStopReason}`) : null;
 
   const entryValues: Record<string, unknown> = {
     fund:              opt('LATAM'),
@@ -372,7 +385,7 @@ async function addDealToLatamList(
     form_sumary:       txt(score.summary),
     green_flags_form:  score.greenFlags  ? txt(score.greenFlags)  : undefined,
     yellow_flags_form: score.yellowFlags ? txt(score.yellowFlags) : undefined,
-    red_flags_form_7:  score.redFlags    ? txt(score.redFlags)    : undefined,
+    red_flags_form_7:  hardStopLabel     ? txt(hardStopLabel)     : undefined,
   };
 
   // Remove undefined values
@@ -380,10 +393,12 @@ async function addDealToLatamList(
     if (entryValues[k] === undefined) delete entryValues[k];
   }
 
+  entryValues['tier_5'] = status(score.tier);
+
   if (declined) {
     entryValues['not_qualified_reviewer'] = opt(randomFrom(ANALYSTS_NOT_QUALIFIED));
+    entryValues['reason']                 = status('Tesis');
   } else {
-    entryValues['tier_5']           = status(score.tier);
     entryValues['pre_call_evaluator'] = opt(randomFrom(ANALYSTS_QUALIFIED));
   }
 
@@ -412,7 +427,8 @@ export interface SyncResult {
 
 export async function syncSessionToAttio(
   answers: Record<string, unknown>,
-  declined: boolean = false
+  declined: boolean = false,
+  hardStopReason?: string | null
 ): Promise<AttioResult<SyncResult>> {
   if (!answers.founder_email) {
     return { ok: false, error: 'Missing founder email' };
@@ -445,7 +461,7 @@ export async function syncSessionToAttio(
   const score = scoreAnswers(answers);
   console.log(`[Score] ${answers.startup_name} — total: ${score.total}/85, tier: ${score.tier}`);
 
-  const listR = await addDealToLatamList(dealId, declined, score);
+  const listR = await addDealToLatamList(dealId, declined, score, hardStopReason);
   if (!listR.ok) console.warn(`[Attio] list add failed: ${listR.error}`);
 
   return { ok: true, data: { personId, companyId, dealId, addedToList: listR.ok } };

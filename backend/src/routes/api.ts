@@ -108,7 +108,7 @@ router.post('/sessions/:id/submit', async (req: Request, res: Response) => {
       return res.json({ ok: true, isDeclined: !!session.answers.__hard_stop, alreadySubmitted: true });
     }
 
-    const attioResult = await syncSessionToAttio(answers, !!hardStop);
+    const attioResult = await syncSessionToAttio(answers, !!hardStop, hardStop?.reason ?? null);
     if (attioResult.ok) {
       await updateAttioIds(
         req.params.id,

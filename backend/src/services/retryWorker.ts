@@ -18,7 +18,7 @@ export async function runRetryWorker(): Promise<void> {
 
   for (const session of sessions) {
     const declined = !!session.hardStop;
-    const result = await syncSessionToAttio(session.answers, declined);
+    const result = await syncSessionToAttio(session.answers, declined, session.hardStop ?? null);
 
     if (result.ok) {
       await updateAttioIds(
