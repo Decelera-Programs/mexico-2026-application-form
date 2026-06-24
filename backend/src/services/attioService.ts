@@ -332,7 +332,10 @@ async function createDeal(
 
   // ── Block 6: Wrap-up
   addOpt ('reference_3',  T_HOW_HEARD, a.how_heard);
-  addText('referral',              a.referral_name);
+  const referralParts: string[] = [];
+  if (a.referral_name)         referralParts.push(String(a.referral_name));
+  if (a.network_contact_name)  referralParts.push(`Relationship with: ${String(a.network_contact_name)}`);
+  if (referralParts.length)    v['referral'] = txt(referralParts.join(' · '));
   addText('added_comments',        a.additional_comments);
 
   const r = await attioFetch<{ data: { id: { record_id: string } } }>(
