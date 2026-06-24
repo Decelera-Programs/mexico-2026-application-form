@@ -8,34 +8,37 @@ const router = Router();
 
 interface HardStop { reason: string; message: string }
 
+const DECLINE = (reason: string) =>
+  `Thanks for sharing your project. This round we're focused on ${reason}, so it isn't the right fit right now. We'll keep you on our radar for future calls. Best of luck. ✨`;
+
 function evaluateHardStops(answers: Record<string, unknown>): HardStop | null {
-  if (answers.incorporation_location === 'Brasil') {
-    return { reason: 'brazil_incorporation', message: 'Gracias por compartir tu proyecto. Esta ronda estamos enfocados en empresas constituidas fuera de Brasil, así que no encaja en este momento. Te tendremos en el radar para futuras convocatorias. ¡Mucha suerte construyendo! ✨' };
+  if (answers.incorporation_location === 'Brazil') {
+    return { reason: 'brazil_incorporation', message: DECLINE('companies incorporated outside Brazil') };
   }
   const ops = (answers.operations_location as string[] | undefined) ?? [];
-  const LATAM = ['México', 'Colombia', 'Chile', 'Argentina', 'Perú', 'Uruguay', 'Centroamérica & Caribe', 'Otro LATAM'];
+  const LATAM = ['Mexico', 'Colombia', 'Chile', 'Argentina', 'Peru', 'Uruguay', 'Central America & Caribbean', 'Other LATAM'];
   if (ops.length > 0 && !ops.some(o => LATAM.includes(o))) {
-    return { reason: 'no_latam_operation', message: 'Gracias por compartir tu proyecto. Esta ronda estamos enfocados en equipos operando en LATAM, así que no encaja en este momento. Te tendremos en el radar para futuras convocatorias. ¡Mucha suerte! ✨' };
+    return { reason: 'no_latam_operation', message: DECLINE('teams operating in LATAM') };
   }
   const year = Number(answers.company_start_year);
   if (!isNaN(year) && year > 1990 && year < 2023) {
-    return { reason: 'pre_2023', message: 'Gracias por compartir tu proyecto. Esta ronda estamos enfocados en empresas que hayan empezado a operar en 2023 o después, así que no encaja en este momento. Te tendremos en el radar para futuras convocatorias. ¡Mucha suerte! ✨' };
+    return { reason: 'pre_2023', message: DECLINE('companies that started operating in 2023 or later') };
   }
   if (answers.founding_equity === '<40%') {
-    return { reason: 'low_equity', message: 'Gracias por compartir tu proyecto. Para Decelera es importante que el equipo fundador mantenga al menos un 40% del equity, así que no encaja en este momento. Te tendremos en el radar para futuras convocatorias. ¡Mucha suerte! ✨' };
+    return { reason: 'low_equity', message: DECLINE('teams where founders hold at least 40% of the equity') };
   }
   if (answers.total_raised === '>€2.5M') {
-    return { reason: 'beyond_seed', message: 'Gracias por compartir tu proyecto. Esta ronda estamos enfocados en startups en etapa pre-seed/early-seed, así que no encaja en este momento. Te tendremos en el radar para futuras convocatorias. ¡Mucha suerte! ✨' };
+    return { reason: 'beyond_seed', message: DECLINE('pre-seed and early-seed startups') };
   }
   if (answers.net_burn === '>€100k') {
-    return { reason: 'high_burn', message: 'Gracias por compartir tu proyecto. En esta etapa buscamos startups con un burn más contenido, así que no encaja en este momento. Te tendremos en el radar para futuras convocatorias. ¡Mucha suerte! ✨' };
+    return { reason: 'high_burn', message: DECLINE('startups with a contained burn at this stage') };
   }
-  if (answers.runway === '12+ meses') {
-    return { reason: 'long_runway', message: 'Gracias por compartir tu proyecto. Para este programa buscamos startups que estén activamente levantando ronda ahora mismo, así que no encaja en este momento. Te tendremos en el radar para futuras convocatorias. ¡Mucha suerte! ✨' };
+  if (answers.runway === '12+ months') {
+    return { reason: 'long_runway', message: DECLINE('startups actively raising right now') };
   }
   const val = Number(answers.pre_money_valuation);
   if (!isNaN(val) && val > 0 && val < 10_000_000) {
-    return { reason: 'low_valuation', message: 'Gracias por compartir tu proyecto. Esta ronda estamos enfocados en empresas con valoraciones pre-money de €10M o más, así que no encaja en este momento. Te tendremos en el radar para futuras convocatorias. ¡Mucha suerte! ✨' };
+    return { reason: 'low_valuation', message: DECLINE('companies with a pre-money valuation of €10M or above') };
   }
   return null;
 }
@@ -116,7 +119,7 @@ router.post('/sessions/:id/submit', async (req: Request, res: Response) => {
       }
     }
 
-    const successMessage = '¡Recibido! El equipo de Decelera revisará tu aplicación y te contactaremos en los próximos días. Respira, continúa construyendo y mantente atento/a al email. 🚀';
+    const successMessage = 'Thanks for applying to Decelera LATAM 2026. The investment team reviews every application — you\'ll hear from us within 7 days. Questions: hola@decelera.com';
 
     res.json({
       ok: true,
