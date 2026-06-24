@@ -152,7 +152,7 @@ const BLOCKS: BlockDef[] = [
     description: 'Legal structure and fundraising status. Hard stops evaluated on submit.',
     fields: [
       { id: 'incorporation_location', required: true,  label: 'Where is your company incorporated?', type: 'select', options: ['Spain', 'Portugal', 'France', 'Italy', 'UK', 'EU', 'LATAM', 'Brazil', 'Other'] },
-      { id: 'operations_location',    required: true,  label: 'Where does the company operate? Select all that apply.', type: 'multiselect', options: ['Mexico', 'Colombia', 'Chile', 'Argentina', 'Peru', 'Uruguay', 'Central America & Caribbean', 'USA', 'Brazil', 'Other LATAM', 'Europe'] },
+      { id: 'operations_location', required: true, label: 'Where does the company operate? Select all that apply.', type: 'multiselect', options: ['Mexico', 'Colombia', 'Chile', 'Argentina', 'Peru', 'Uruguay', 'Central America & Caribbean', 'Brazil', 'Other LATAM', 'USA', 'Europe'] },
       { id: 'company_start_year',     required: true,  label: 'What year did the company start operating?', type: 'number', placeholder: 'e.g. 2024' },
       { id: 'founding_equity',        required: true,  label: 'How much equity is held by the founding team, including the option pool?', type: 'select', options: ['>80%', '60–80%', '40–60%', '<40%'] },
       { id: 'total_raised',           required: true,  label: 'Total raised to date, excluding the current round.', hint: 'Equity, notes, SAFEs.', type: 'select', options: ['<€500k', '€500k–1.5M', '€1.5M–2.5M', '>€2.5M'] },
