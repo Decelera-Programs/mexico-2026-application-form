@@ -665,8 +665,9 @@ function Sidebar({ activeBlock, answers, isFinished, isDeclined, onBlockClick }:
       </nav>
 
       <div style={{ padding: '14px 20px 22px', borderTop: `1px solid ${C.sbDivider}`, flexShrink: 0 }}>
-        <div style={{ fontSize: 12, color: '#fff', fontFamily: 'var(--font-body)', marginBottom: 10 }}>
-          {answered} / {allRequired.length} fields completed
+        <div style={{ fontSize: 12, color: '#fff', fontFamily: 'var(--font-body)', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>{answered} / {allRequired.length} fields completed</span>
+          <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>✓ progress saved</span>
         </div>
         <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden', marginBottom: 16 }}>
           <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${C.gold}, #FF8C42)`, borderRadius: 2, transition: 'width 0.4s ease' }} />
@@ -727,6 +728,14 @@ export default function App() {
             setSessionId(savedId);
             setAnswers(data.answers ?? {});
             setAppState('form');
+            if (data.currentBlock) {
+              const idx = BLOCKS.findIndex(b => b.id === data.currentBlock);
+              if (idx > 0) {
+                setTimeout(() => {
+                  blockRefs.current[idx]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+              }
+            }
             return;
           }
         }
