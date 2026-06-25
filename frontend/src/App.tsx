@@ -704,7 +704,6 @@ export default function App() {
   const [answers, setAnswers]       = useState<Record<string, unknown>>({});
   const [errors, setErrors]         = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [resultMsg, setResultMsg]   = useState('');
   const [activeBlock, setActiveBlock] = useState(0);
 
   const blockRefs      = useRef<(HTMLElement | null)[]>([]);
@@ -822,7 +821,6 @@ export default function App() {
     setSubmitting(true);
     try {
       const result = await submitApplication(sessionId, answers);
-      setResultMsg(result.message);
       localStorage.removeItem('decelera_mex26_session_id');
       setAppState(result.isDeclined ? 'declined' : 'complete');
     } catch {
@@ -857,32 +855,64 @@ export default function App() {
     );
   }
 
-  // ── Complete ────────────────────────────────────────────────────────────────
+  // ── Complete / Declined ─────────────────────────────────────────────────────
 
-  if (appState === 'complete') {
+  if (appState === 'complete' || appState === 'declined') {
+    const fmt = (n: unknown) => n ? `€${Number(n).toLocaleString('en-US')}` : '—';
+    const arr = (v: unknown) => Array.isArray(v) && v.length ? (v as string[]).join(', ') : (v as string | undefined) ?? '—';
+    const str = (v: unknown) => (v as string | undefined) ?? '—';
+
+    const rows: [string, React.ReactNode][] = [
+      ['Founder',          str(answers.founder_full_name)],
+      ['Email',            str(answers.founder_email)],
+      ['Sector',           arr(answers.sector)],
+      ['Business model',   arr(answers.business_model)],
+      ['Incorporated in',  str(answers.incorporation_location)],
+      ['Operations',       arr(answers.operations_location)],
+      ['Started operating',str(answers.company_start_year)],
+      ['Founding equity',  str(answers.founding_equity)],
+      ['Total raised',     str(answers.total_raised)],
+      ['Current round',    fmt(answers.round_size)],
+      ['Pre-money val.',   fmt(answers.pre_money_valuation)],
+      ['Monthly burn',     str(answers.net_burn)],
+      ['Runway',           str(answers.runway)],
+      ['How heard',        str(answers.how_heard)],
+      ['Pitch deck',       answers.pitch_deck_url
+        ? <a href={str(answers.pitch_deck_url)} target="_blank" rel="noreferrer" style={{ color: C.water, textDecoration: 'none', wordBreak: 'break-all' }}>{str(answers.pitch_deck_url)}</a>
+        : '—'],
+    ];
+
     return (
       <div style={{ display: 'flex', height: '100dvh' }}>
-        <Confetti />
-        <Sidebar activeBlock={BLOCKS.length} answers={answers} isFinished isDeclined={false} onBlockClick={() => {}} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: C.bg, padding: '40px 24px', textAlign: 'center' }}>
-          <div style={{ fontSize: 52, marginBottom: 20 }}>🎉</div>
-          <h1 style={{ fontFamily: 'Taviraj, serif', fontWeight: 200, fontSize: 32, color: C.navy, margin: '0 0 16px', letterSpacing: '-0.01em' }}>Application submitted!</h1>
-          <p style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: '#6B7A99', maxWidth: 520, lineHeight: 1.75, margin: '0 0 36px' }}>{resultMsg}</p>
-          <p style={{ fontFamily: 'Taviraj, serif', fontWeight: 200, fontSize: 18, color: C.cloud, letterSpacing: '0.04em', margin: 0 }}>Breathe. Focus. Grow.</p>
-        </div>
-      </div>
-    );
-  }
+        {appState === 'complete' && <Confetti />}
+        <Sidebar activeBlock={BLOCKS.length} answers={answers} isFinished isDeclined={appState === 'declined'} onBlockClick={() => {}} />
+        <div style={{ flex: 1, overflowY: 'auto', background: C.bg, padding: '48px 32px' }}>
+          <div style={{ maxWidth: 620, margin: '0 auto' }}>
+            <h1 style={{ fontFamily: 'Taviraj, serif', fontWeight: 200, fontSize: 34, color: C.navy, margin: '0 0 6px', letterSpacing: '-0.01em' }}>
+              Thanks for applying!
+            </h1>
+            <p style={{ fontFamily: 'var(--font-body)', fontSize: 15, color: '#6B7A99', margin: '0 0 32px' }}>
+              {str(answers.startup_name)} · Here's what we received.
+            </p>
 
-  if (appState === 'declined') {
-    return (
-      <div style={{ display: 'flex', height: '100dvh' }}>
-        <Sidebar activeBlock={BLOCKS.length} answers={answers} isFinished isDeclined onBlockClick={() => {}} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: C.bg, padding: '40px 24px', textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 20 }}>🙏</div>
-          <h1 style={{ fontFamily: 'Taviraj, serif', fontWeight: 200, fontSize: 30, color: C.navy, margin: '0 0 16px' }}>Thanks for sharing your project</h1>
-          <p style={{ fontFamily: 'var(--font-body)', fontSize: 15, color: '#6B7A99', maxWidth: 520, lineHeight: 1.75, margin: '0 0 32px' }}>{resultMsg}</p>
-          <p style={{ fontFamily: 'Taviraj, serif', fontWeight: 200, fontSize: 17, color: C.cloud, letterSpacing: '0.04em', margin: 0 }}>Breathe. Focus. Grow.</p>
+            <div style={{ background: '#fff', border: `1px solid ${C.inputBorder}`, borderRadius: 12, overflow: 'hidden' }}>
+              {rows.map(([label, value], i) => (
+                <div key={label} style={{
+                  display: 'grid', gridTemplateColumns: '160px 1fr',
+                  padding: '12px 20px',
+                  borderTop: i > 0 ? `1px solid ${C.inputBorder}` : undefined,
+                  background: i % 2 === 0 ? '#fff' : '#FAFBFC',
+                }}>
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: '#9AA3B8', fontWeight: 500 }}>{label}</span>
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: C.night, wordBreak: 'break-word' }}>{value}</span>
+                </div>
+              ))}
+            </div>
+
+            <p style={{ fontFamily: 'Taviraj, serif', fontWeight: 200, fontSize: 17, color: C.cloud, letterSpacing: '0.04em', margin: '36px 0 0', textAlign: 'center' }}>
+              Breathe. Focus. Grow.
+            </p>
+          </div>
         </div>
       </div>
     );
