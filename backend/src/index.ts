@@ -25,6 +25,13 @@ app.use(cors({
 
 app.use(express.json());
 
+// Allow embedding in iframes from any origin
+app.use((_req, res, next) => {
+  res.removeHeader('X-Frame-Options');
+  res.setHeader('Content-Security-Policy', "frame-ancestors *");
+  next();
+});
+
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
