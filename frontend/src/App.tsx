@@ -16,7 +16,7 @@ interface FieldDef {
   options?: string[];
   placeholder?: string;
   maxLength?: number;
-  condition?: { field: string; value: unknown };
+  condition?: { field: string; value: unknown; operator?: 'eq' | 'not_eq' };
 }
 
 interface BlockDef {
@@ -94,7 +94,7 @@ const BLOCKS: BlockDef[] = [
           'None / general growth',
         ],
       },
-      { id: 'why_now_validation', required: true, label: 'Explain that in a couple of lines.', hint: 'If you can cite the law, technology or market data that validates it, do.', type: 'textarea', maxLength: 400 },
+      { id: 'why_now_validation', required: true, label: 'Explain that in a couple of lines.', hint: 'If you can cite the law, technology or market data that validates it, do.', type: 'textarea', maxLength: 400, condition: { field: 'why_now_select', value: 'None / general growth', operator: 'not_eq' } },
       { id: 'potential_clients', required: true, label: 'Roughly how many potential clients are in your target market?', type: 'number', placeholder: 'e.g. 50000' },
     ],
   },
@@ -120,7 +120,7 @@ const BLOCKS: BlockDef[] = [
           'First-time founder',
         ],
       },
-      { id: 'team_milestone_detail',        required: true, label: 'Tell us more about that milestone.', hint: 'First-time founder? The most impressive thing you\'ve built, hacked or organized in the last 3 years with no budget.', type: 'textarea', maxLength: 600 },
+      { id: 'team_milestone_detail',        required: true, label: 'Tell us more about that milestone.', hint: 'Give us context: what did you build, what was the outcome, what did you learn? First-time founder? Tell us the most impressive thing you\'ve shipped or organized with limited resources.', type: 'textarea', maxLength: 600 },
       { id: 'sector_experience',            required: true, label: 'How many years of cumulative experience does the team have in this specific sector?', type: 'select', options: ['0–2 years', '2–5 years', '6–12 years', '12+ years'] },
       {
         id: 'most_significant_milestone', required: true,
@@ -232,7 +232,12 @@ function validateAll(answers: Record<string, unknown>): Record<string, string> {
   const errs: Record<string, string> = {};
   for (const block of BLOCKS) {
     for (const f of block.fields) {
-      if (f.condition && answers[f.condition.field] !== f.condition.value) continue;
+      if (f.condition) {
+        const v = answers[f.condition.field];
+        const matches = v === f.condition.value;
+        const visible = f.condition.operator === 'not_eq' ? (v !== undefined && v !== null && v !== '' && !matches) : matches;
+        if (!visible) continue;
+      }
       const msg = validateFieldValue(f, answers[f.id]);
       if (msg) errs[f.id] = msg;
     }
@@ -568,7 +573,7 @@ function BooleanField({ field, value, onChange, error }: FieldInputProps) {
                 transition: 'all 0.12s',
               }}
             >
-              {opt ? 'Sí' : 'No'}
+              {opt ? 'Yes' : 'No'}
             </button>
           );
         })}
@@ -945,7 +950,12 @@ export default function App() {
         <div style={{ maxWidth: 700, margin: '0 auto', padding: '56px 40px 80px' }}>
 
           {BLOCKS.map((block, bIdx) => {
-            const visibleFields = block.fields.filter(f => !f.condition || answers[f.condition.field] === f.condition.value);
+            const visibleFields = block.fields.filter(f => {
+            if (!f.condition) return true;
+            const v = answers[f.condition.field];
+            const matches = v === f.condition.value;
+            return f.condition.operator === 'not_eq' ? (v !== undefined && v !== null && v !== '' && !matches) : matches;
+          });
             return (
               <section
                 key={block.id}
