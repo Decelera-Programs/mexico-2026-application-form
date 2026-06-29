@@ -77,8 +77,8 @@ const WHY_NOW: Record<string, number> = {
 };
 
 const TEAM_MILESTONE: Record<string, number> = {
-  'Serial founder, exit >€10M':                   15,
-  'Serial founder, exit <€10M':                   10,
+  'Serial founder, exit >$10M':                   15,
+  'Serial founder, exit <$10M':                   10,
   'Serial founder, no exit':                       7,
   'Early employee (<20) at a unicorn / scale-up':  7,
   'PhD or senior researcher in the area':          7,
@@ -97,7 +97,7 @@ const SIG_MILESTONE: Record<string, number> = {
   'Built and launched the MVP with no external funding / 3rd-party devs': 10,
   'Convinced a Tier-1 senior to leave their job for min salary':          10,
   'Secured 3+ LOIs or pilots before a finished product':                   8,
-  '€5k+ MRR (or equivalent usage) within 12 weeks of launch':             7,
+  '$5k+ MRR (or equivalent usage) within 12 weeks of launch':             7,
   'None yet':                                                               0,
 };
 
@@ -172,8 +172,8 @@ export function scoreAnswers(a: Record<string, unknown>): ScoreResult {
     yellow.push('🟡 MoM growth <5% or N/A');
 
   // Q21 Net burn — flags only, not scored
-  if (a.net_burn === '€50–100k')
-    yellow.push('🟡 Monthly burn €50–100k');
+  if (a.net_burn === '$50k - $100k')
+    yellow.push('🟡 Monthly burn $50k-$100k');
 
   // Q22 Churn
   tractionScore += single(CHURN, a.churn);

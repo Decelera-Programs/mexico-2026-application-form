@@ -27,10 +27,10 @@ function evaluateHardStops(answers: Record<string, unknown>): HardStop | null {
   if (answers.founding_equity === '<40%') {
     return { reason: 'low_equity', message: DECLINE('teams where founders hold at least 40% of the equity') };
   }
-  if (answers.total_raised === '>€2.5M') {
+  if (answers.total_raised === '> $2.5M') {
     return { reason: 'beyond_seed', message: DECLINE('pre-seed and early-seed startups') };
   }
-  if (answers.net_burn === '>€100k') {
+  if (answers.net_burn === '> $100k') {
     return { reason: 'high_burn', message: DECLINE('startups with a contained burn at this stage') };
   }
   if (answers.runway === '12+ months') {
@@ -38,7 +38,7 @@ function evaluateHardStops(answers: Record<string, unknown>): HardStop | null {
   }
   const val = Number(answers.pre_money_valuation);
   if (!isNaN(val) && val > 0 && val < 10_000_000) {
-    return { reason: 'low_valuation', message: DECLINE('companies with a pre-money valuation of €10M or above') };
+    return { reason: 'low_valuation', message: DECLINE('companies with a pre-money valuation of $10M or above') };
   }
   return null;
 }

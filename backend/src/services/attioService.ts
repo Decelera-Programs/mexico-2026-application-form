@@ -46,8 +46,8 @@ const T_WHY_NOW: Record<string, string> = {
 };
 
 const T_TEAM_MILESTONE: Record<string, string> = {
-  'Serial founder, exit >€10M':                   'Serial founder exit +10M',
-  'Serial founder, exit <€10M':                   'Serial founder exit -10M',
+  'Serial founder, exit >$10M':                   'Serial founder exit +$10M',
+  'Serial founder, exit <$10M':                   'Serial founder exit -$10M',
   'Serial founder, no exit':                      'Serial founder no exit',
   'Early employee (<20) at a unicorn / scale-up': 'Early employee Unicorn-Scaleup',
   'PhD or senior researcher in the area':         'PhD or Senior Investigator',
@@ -59,7 +59,7 @@ const T_MILESTONE: Record<string, string> = {
   'Built and launched the MVP with no external funding / 3rd-party devs': 'Built and launched the MVP without external funding or 3rd party devs.',
   'Convinced a Tier-1 senior to leave their job for min salary':           'Convinced a Tier 1 Senior profile to leave their job and join as Co-founder/Early hire (minimum salary).',
   'Secured 3+ LOIs or pilots before a finished product':                   'Secured 3+ LOIs or Pilot agreements before having a finished product.',
-  '€5k+ MRR (or equivalent usage) within 12 weeks of launch':             'Reached +€5k MRR (or equivalent usage) within the first 12 weeks of launch.',
+  '$5k+ MRR (or equivalent usage) within 12 weeks of launch':             'Reached +$5k MRR (or equivalent usage) within the first 12 weeks of launch.',
   'None yet':                                                               'None of the above yet.',
 };
 
@@ -78,11 +78,11 @@ const T_MOM_GROWTH: Record<string, string> = {
 };
 
 const T_NET_BURN: Record<string, string> = {
-  '<€10k':    '<10k €',
-  '€10–25k':  '10k-25k €',
-  '€25–50k':  '25k-50k €',
-  '€50–100k': '50 - 100k €',
-  '>€100k':   '+100k €',
+  '< $10k':       '< $10k',
+  '$10k - $25k':  '$10k - $25k',
+  '$25k - $50k':  '$25k - $50k',
+  '$50k - $100k': '$50k - $100k',
+  '> $100k':      '> $100k',
 };
 
 const T_CHURN: Record<string, string> = {
@@ -104,7 +104,7 @@ const T_EQUITY: Record<string, string> = {
 };
 
 const T_RAISED: Record<string, string> = {
-  '<€500k': '< 500k', '€500k–1.5M': '500k - 1.5M', '€1.5M–2.5M': '1.5M - 2.5M', '>€2.5M': '> 2.5M',
+  '< $500k': '< $500k', '$500k - $1.5M': '$500k - $1.5M', '$1.5M - $2.5M': '$1.5M - $2.5M', '> $2.5M': '> $2.5M',
 };
 
 const T_ROUND_COMMITTED: Record<string, string> = {
@@ -374,10 +374,10 @@ const HARD_STOP_LABELS: Record<string, string> = {
   no_latam_operation:   '🔴 Hard stop: No LATAM operations',
   pre_2023:             '🔴 Hard stop: Company started operating before 2023',
   low_equity:           '🔴 Hard stop: Founders hold <40% equity',
-  beyond_seed:          '🔴 Hard stop: Raised >€2.5M (beyond seed)',
-  high_burn:            '🔴 Hard stop: Monthly burn >€100k',
+  beyond_seed:          '🔴 Hard stop: Raised >$2.5M (beyond seed)',
+  high_burn:            '🔴 Hard stop: Monthly burn >$100k',
   long_runway:          '🔴 Hard stop: Runway 12+ months — not actively raising',
-  low_valuation:        '🔴 Hard stop: Pre-money valuation <€10M',
+  low_valuation:        '🔴 Hard stop: Pre-money valuation <$10M',
 };
 
 async function addDealToLatamList(

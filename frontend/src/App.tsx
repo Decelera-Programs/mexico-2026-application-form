@@ -52,7 +52,7 @@ const BLOCKS: BlockDef[] = [
       { id: 'industry_insight', label: 'Tell us something about your industry that big incumbents don\'t understand or ignore.', hint: '1–2 sentences. Your strongest insight revealer as a founder.', type: 'textarea', required: true, maxLength: 400 },
       {
         id: 'defensibility', required: true,
-        label: 'A competitor raises €100M tomorrow to kill your startup. What\'s the one thing they can\'t buy or copy in 12 months?',
+        label: 'A competitor raises $100M tomorrow to kill your startup. What\'s the one thing they can\'t buy or copy in 12 months?',
         type: 'multiselect',
         options: [
           'Data moat — proprietary/exclusive/longitudinal data improving with use',
@@ -111,8 +111,8 @@ const BLOCKS: BlockDef[] = [
         label: 'What is the team\'s most relevant collective milestone? Select all that apply.',
         type: 'multiselect',
         options: [
-          'Serial founder, exit >€10M',
-          'Serial founder, exit <€10M',
+          'Serial founder, exit >$10M',
+          'Serial founder, exit <$10M',
           'Serial founder, no exit',
           'Early employee (<20) at a unicorn / scale-up',
           'PhD or senior researcher in the area',
@@ -130,7 +130,7 @@ const BLOCKS: BlockDef[] = [
           'Built and launched the MVP with no external funding / 3rd-party devs',
           'Convinced a Tier-1 senior to leave their job for min salary',
           'Secured 3+ LOIs or pilots before a finished product',
-          '€5k+ MRR (or equivalent usage) within 12 weeks of launch',
+          '$5k+ MRR (or equivalent usage) within 12 weeks of launch',
           'None yet',
         ],
       },
@@ -143,7 +143,7 @@ const BLOCKS: BlockDef[] = [
     fields: [
       { id: 'north_star',          required: true, label: 'Describe your traction.', type: 'textarea', maxLength: 600 },
       { id: 'mom_growth',          required: true, label: 'Average MoM growth over the last 3 months?',           type: 'select', options: ['>20%', '10–20%', '5–10%', '<5% or N/A — building / pivoting'] },
-      { id: 'net_burn',            required: true, label: 'Average monthly net burn over the last 3 months? (€)', type: 'select', options: ['<€10k', '€10–25k', '€25–50k', '€50–100k', '>€100k'] },
+      { id: 'net_burn',            required: true, label: 'Average monthly net burn over the last 3 months? ($)', type: 'select', options: ['< $10k', '$10k - $25k', '$25k - $50k', '$50k - $100k', '> $100k'] },
       { id: 'churn',               required: true, label: 'Average monthly churn over the last 3 months?',        type: 'select', options: ['<2%', '2–5%', '5–10%', '>10%'] },
       { id: 'acquisition_channel', required: true, label: 'How are you acquiring clients?',                       type: 'select', options: ['>80% organic — word-of-mouth / SEO / loops', '50–80% organic, rest paid', '<50% organic — heavy ads / sales'] },
     ],
@@ -157,10 +157,10 @@ const BLOCKS: BlockDef[] = [
       { id: 'operations_location', required: true, label: 'Where does the company operate? Select all that apply.', type: 'multiselect', options: ['Mexico', 'Colombia', 'Chile', 'Argentina', 'Peru', 'Uruguay', 'Central America & Caribbean', 'Brazil', 'Other LATAM', 'USA', 'Europe'] },
       { id: 'company_start_year',     required: true,  label: 'What year did the company start operating?', type: 'year', placeholder: '20XX' },
       { id: 'founding_equity',        required: true,  label: 'How much equity is held by the founding team, including the option pool?', type: 'select', options: ['>80%', '60–80%', '40–60%', '<40%'] },
-      { id: 'total_raised',           required: true,  label: 'Total raised to date, excluding the current round.', hint: 'Equity, notes, SAFEs.', type: 'select', options: ['<€500k', '€500k–1.5M', '€1.5M–2.5M', '>€2.5M'] },
-      { id: 'round_size',             required: true,  label: 'What is the total size of your current round? (€)', type: 'number', placeholder: 'e.g. 1000000' },
+      { id: 'total_raised',           required: true,  label: 'Total raised to date, excluding the current round.', hint: 'Equity, notes, SAFEs.', type: 'select', options: ['< $500k', '$500k - $1.5M', '$1.5M - $2.5M', '> $2.5M'] },
+      { id: 'round_size',             required: true,  label: 'What is the total size of your current round? ($)', type: 'number', placeholder: 'e.g. 1000000' },
       { id: 'round_committed',        required: true,  label: 'How much of the round is committed?', type: 'select', options: ['0–25%', '25–50%', '50–75%', '75%+'] },
-      { id: 'pre_money_valuation',    required: true,  label: 'What is the pre-money valuation (or cap)? (€)', type: 'number', placeholder: 'e.g. 5000000' },
+      { id: 'pre_money_valuation',    required: true,  label: 'What is the pre-money valuation (or cap)? ($)', type: 'number', placeholder: 'e.g. 5000000' },
       { id: 'runway',                 required: true,  label: 'What is your current runway?', type: 'select', options: ['0–2 months', '2–5 months', '6–12 months', '12+ months'] },
       { id: 'pitch_deck_url',         required: true,  label: 'Pitch deck', hint: 'Upload a PDF or paste a link (Google Drive, Dropbox, Docsend…). Make sure it\'s not password protected.', type: 'file-url', placeholder: 'https://...' },
     ],
@@ -879,7 +879,7 @@ export default function App() {
   // ── Complete / Declined ─────────────────────────────────────────────────────
 
   if (appState === 'complete' || appState === 'declined') {
-    const fmt = (n: unknown) => n ? `€${Number(n).toLocaleString('en-US')}` : '—';
+    const fmt = (n: unknown) => n ? `$${Number(n).toLocaleString('en-US')}` : '—';
     const arr = (v: unknown) => Array.isArray(v) && v.length ? (v as string[]).join(', ') : (v as string | undefined) ?? '—';
     const str = (v: unknown) => (v as string | undefined) ?? '—';
 
