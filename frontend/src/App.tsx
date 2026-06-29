@@ -16,7 +16,7 @@ interface FieldDef {
   options?: string[];
   placeholder?: string;
   maxLength?: number;
-  condition?: { field: string; value: unknown; operator?: 'eq' | 'not_eq' };
+  condition?: { field: string; value: unknown; operator?: 'eq' | 'not_eq' | 'array_has_other' };
 }
 
 interface BlockDef {
@@ -120,7 +120,7 @@ const BLOCKS: BlockDef[] = [
           'First-time founder',
         ],
       },
-      { id: 'team_milestone_detail',        required: true, label: 'Tell us more about that milestone.', hint: 'Give us context: what did you build, what was the outcome, what did you learn? First-time founder? Tell us the most impressive thing you\'ve shipped or organized with limited resources.', type: 'textarea', maxLength: 600 },
+      { id: 'team_milestone_detail',        required: true, label: 'Tell us more about that milestone.', hint: 'Give us context: what did you build, what was the outcome, what did you learn?', type: 'textarea', maxLength: 600, condition: { field: 'team_milestone', value: 'First-time founder', operator: 'array_has_other' } },
       { id: 'sector_experience',            required: true, label: 'How many years of cumulative experience does the team have in this specific sector?', type: 'select', options: ['0–2 years', '2–5 years', '6–12 years', '12+ years'] },
       {
         id: 'most_significant_milestone', required: true,
@@ -198,6 +198,17 @@ const C = {
   inputBorder: 'rgba(45,56,82,0.18)',
 };
 
+// ── Condition evaluation ──────────────────────────────────────────────────────
+
+function isFieldVisible(f: FieldDef, answers: Record<string, unknown>): boolean {
+  if (!f.condition) return true;
+  const v = answers[f.condition.field];
+  const { value, operator = 'eq' } = f.condition;
+  if (operator === 'not_eq') return v !== undefined && v !== null && v !== '' && v !== value;
+  if (operator === 'array_has_other') return Array.isArray(v) && v.some(item => item !== value);
+  return v === value;
+}
+
 // ── Validation ────────────────────────────────────────────────────────────────
 
 function validateFieldValue(field: FieldDef, v: unknown): string | null {
@@ -232,12 +243,7 @@ function validateAll(answers: Record<string, unknown>): Record<string, string> {
   const errs: Record<string, string> = {};
   for (const block of BLOCKS) {
     for (const f of block.fields) {
-      if (f.condition) {
-        const v = answers[f.condition.field];
-        const matches = v === f.condition.value;
-        const visible = f.condition.operator === 'not_eq' ? (v !== undefined && v !== null && v !== '' && !matches) : matches;
-        if (!visible) continue;
-      }
+      if (!isFieldVisible(f, answers)) continue;
       const msg = validateFieldValue(f, answers[f.id]);
       if (msg) errs[f.id] = msg;
     }
@@ -950,12 +956,7 @@ export default function App() {
         <div style={{ maxWidth: 700, margin: '0 auto', padding: '56px 40px 80px' }}>
 
           {BLOCKS.map((block, bIdx) => {
-            const visibleFields = block.fields.filter(f => {
-            if (!f.condition) return true;
-            const v = answers[f.condition.field];
-            const matches = v === f.condition.value;
-            return f.condition.operator === 'not_eq' ? (v !== undefined && v !== null && v !== '' && !matches) : matches;
-          });
+            const visibleFields = block.fields.filter(f => isFieldVisible(f, answers));
             return (
               <section
                 key={block.id}
