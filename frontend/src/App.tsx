@@ -16,7 +16,7 @@ interface FieldDef {
   options?: string[];
   placeholder?: string;
   maxLength?: number;
-  condition?: { field: string; value: unknown; operator?: 'eq' | 'not_eq' | 'array_has_other' };
+  condition?: { field: string; value: unknown; operator?: 'eq' | 'not_eq' | 'array_has_other' | 'value_in' };
 }
 
 interface BlockDef {
@@ -81,15 +81,30 @@ const BLOCKS: BlockDef[] = [
     label: 'The founders',
     description: 'Who\'s behind it?',
     fields: [
-      { id: 'technical_cofounder',  required: true,  label: 'Do you have a technical co-founder?', type: 'boolean' },
-      { id: 'number_of_founders',   required: true,  label: 'How many full-time founders are on the team?', type: 'select', options: ['1', '2', '3', '4', '4+'] },
-      { id: 'founder_linkedin',     required: true,  label: 'LinkedIn profile(s)', hint: 'Yours and your co-founders\'. We always check.', type: 'url', placeholder: 'https://linkedin.com/in/...' },
+      { id: 'number_of_founders', required: true, label: 'How many full-time founders are on the team?', type: 'select', options: ['1', '2', '3', '4', '4+'] },
+
+      { id: 'founder_1_linkedin',   required: true, label: 'Founder 1 — LinkedIn profile', type: 'url', placeholder: 'https://linkedin.com/in/...' },
+      { id: 'founder_1_tech',       required: true, label: 'Founder 1 — Is it a tech co-founder?', type: 'boolean' },
+      { id: 'founder_1_sector_exp', required: true, label: 'Founder 1 — Years of experience in this specific sector?', type: 'select', options: ['0–2 years', '2–5 years', '6–12 years', '12+ years'] },
+
+      { id: 'founder_2_linkedin',   required: true, label: 'Founder 2 — LinkedIn profile', type: 'url', placeholder: 'https://linkedin.com/in/...', condition: { field: 'number_of_founders', value: ['2','3','4','4+'], operator: 'value_in' } },
+      { id: 'founder_2_tech',       required: true, label: 'Founder 2 — Is it a tech co-founder?', type: 'boolean', condition: { field: 'number_of_founders', value: ['2','3','4','4+'], operator: 'value_in' } },
+      { id: 'founder_2_sector_exp', required: true, label: 'Founder 2 — Years of experience in this specific sector?', type: 'select', options: ['0–2 years', '2–5 years', '6–12 years', '12+ years'], condition: { field: 'number_of_founders', value: ['2','3','4','4+'], operator: 'value_in' } },
+
+      { id: 'founder_3_linkedin',   required: true, label: 'Founder 3 — LinkedIn profile', type: 'url', placeholder: 'https://linkedin.com/in/...', condition: { field: 'number_of_founders', value: ['3','4','4+'], operator: 'value_in' } },
+      { id: 'founder_3_tech',       required: true, label: 'Founder 3 — Is it a tech co-founder?', type: 'boolean', condition: { field: 'number_of_founders', value: ['3','4','4+'], operator: 'value_in' } },
+      { id: 'founder_3_sector_exp', required: true, label: 'Founder 3 — Years of experience in this specific sector?', type: 'select', options: ['0–2 years', '2–5 years', '6–12 years', '12+ years'], condition: { field: 'number_of_founders', value: ['3','4','4+'], operator: 'value_in' } },
+
+      { id: 'founder_4_linkedin',   required: true, label: 'Founder 4 — LinkedIn profile', type: 'url', placeholder: 'https://linkedin.com/in/...', condition: { field: 'number_of_founders', value: ['4','4+'], operator: 'value_in' } },
+      { id: 'founder_4_tech',       required: true, label: 'Founder 4 — Is it a tech co-founder?', type: 'boolean', condition: { field: 'number_of_founders', value: ['4','4+'], operator: 'value_in' } },
+      { id: 'founder_4_sector_exp', required: true, label: 'Founder 4 — Years of experience in this specific sector?', type: 'select', options: ['0–2 years', '2–5 years', '6–12 years', '12+ years'], condition: { field: 'number_of_founders', value: ['4','4+'], operator: 'value_in' } },
       {
         id: 'team_milestone', required: true,
         label: 'What is the team\'s most relevant collective milestone? Select all that apply.',
         type: 'multiselect',
         options: [
-          'Serial founder, exit >$10M',
+          'Serial founder, exit >$30M',
+          'Serial founder, exit $10M–$30M',
           'Serial founder, exit <$10M',
           'Serial founder, no exit',
           'Early employee (<20) at a unicorn / scale-up',
@@ -98,8 +113,15 @@ const BLOCKS: BlockDef[] = [
           'First-time founder',
         ],
       },
-      { id: 'team_milestone_detail',        required: true, label: 'Tell us more about that milestone.', hint: 'Give us context: what did you build, what was the outcome, what did you learn?', type: 'textarea', maxLength: 600, condition: { field: 'team_milestone', value: 'First-time founder', operator: 'array_has_other' } },
-      { id: 'sector_experience',            required: true, label: 'How many years of cumulative experience does the team have in this specific sector?', type: 'select', options: ['0–2 years', '2–5 years', '6–12 years', '12+ years'] },
+      { id: 'team_milestone_detail', required: true, label: 'Tell us more about that milestone.', hint: 'Give us context: what did you build, what was the outcome, what did you learn?', type: 'textarea', maxLength: 600, condition: { field: 'team_milestone', value: 'First-time founder', operator: 'array_has_other' } },
+    ],
+  },
+  {
+    id: 'traction',
+    label: 'Traction',
+    description: 'Numbers, not narrative.',
+    fields: [
+      { id: 'north_star',          required: true, label: 'Describe your traction.', type: 'textarea', maxLength: 600 },
       {
         id: 'most_significant_milestone', required: true,
         label: 'Since launch, what is your most significant milestone? Select all that apply.',
@@ -112,18 +134,10 @@ const BLOCKS: BlockDef[] = [
           'None yet',
         ],
       },
-    ],
-  },
-  {
-    id: 'traction',
-    label: 'Traction',
-    description: 'Numbers, not narrative.',
-    fields: [
-      { id: 'north_star',          required: true, label: 'Describe your traction.', type: 'textarea', maxLength: 600 },
       { id: 'mom_growth',          required: true, label: 'Average MoM growth over the last 3 months?',           type: 'select', options: ['>20%', '10–20%', '5–10%', '<5% or N/A — building / pivoting'] },
       { id: 'net_burn',            required: true, label: 'Average monthly net burn over the last 3 months? ($)', type: 'select', options: ['< $10k', '$10k - $25k', '$25k - $50k', '$50k - $100k', '> $100k'] },
       { id: 'churn',               required: true, label: 'Average monthly churn over the last 3 months?',        type: 'select', options: ['<2%', '2–5%', '5–10%', '>10%'] },
-      { id: 'acquisition_channel', required: true, label: 'How are you acquiring clients?',                       type: 'select', options: ['>80% organic — word-of-mouth / SEO / loops', '50–80% organic, rest paid', '<50% organic — heavy ads / sales'] },
+      { id: 'acquisition_channel', required: true, label: 'How are you acquiring clients?',                       type: 'select', options: ['Clients mostly come to us — word-of-mouth, referrals, inbound, SEO', 'A mix — some inbound, but we actively chase and/or pay for the rest', 'We mostly go get them — outbound sales and paid acquisition'] },
     ],
   },
   {
@@ -132,12 +146,12 @@ const BLOCKS: BlockDef[] = [
     description: 'Legal structure and fundraising status. Hard stops evaluated on submit.',
     fields: [
       { id: 'incorporation_location', required: true,  label: 'Where is your company incorporated?', type: 'select', options: ['Mexico', 'Colombia', 'Chile', 'Argentina', 'Peru', 'Uruguay', 'Central America & Caribbean', 'Brazil', 'Cayman Islands', 'LATAM', 'U.S.A.', 'E.U.', 'Other'] },
-      { id: 'operations_location', required: true, label: 'Where does the company operate? Select all that apply.', type: 'multiselect', options: ['Mexico', 'Colombia', 'Chile', 'Argentina', 'Peru', 'Uruguay', 'Central America & Caribbean', 'Brazil', 'Other LATAM', 'USA', 'Europe'] },
+      { id: 'operations_location', required: true, label: 'Where does the company operate? Select all that apply.', type: 'multiselect', options: ['Mexico', 'Colombia', 'Chile', 'Argentina', 'Peru', 'Uruguay', 'Central America & Caribbean', 'Brazil', 'Other LATAM', 'USA', 'Europe', 'Other'] },
       { id: 'company_start_year',     required: true,  label: 'What year did the company start operating?', type: 'year', placeholder: '20XX' },
       { id: 'founding_equity',        required: true,  label: 'How much equity is held by the founding team, including the option pool?', type: 'select', options: ['>80%', '60–80%', '40–60%', '<40%'] },
       { id: 'total_raised',           required: true,  label: 'Total raised to date, excluding the current round.', hint: 'Equity, notes, SAFEs.', type: 'select', options: ['< $500k', '$500k - $1.5M', '$1.5M - $2.5M', '> $2.5M'] },
       { id: 'round_size',             required: true,  label: 'What is the total size of your current round? ($)', type: 'number', placeholder: 'e.g. 1000000' },
-      { id: 'round_committed',        required: true,  label: 'How much of the round is committed?', type: 'select', options: ['0–25%', '25–50%', '50–75%', '75%+'] },
+      { id: 'round_committed',        required: true,  label: 'How much of the current round is already committed?', type: 'select', options: ['0–25%', '25–50%', '50–75%', '75%+'] },
       { id: 'pre_money_valuation',    required: true,  label: 'What is the pre-money valuation (or cap)? ($)', type: 'number', placeholder: 'e.g. 5000000' },
       { id: 'runway',                 required: true,  label: 'What is your current runway?', type: 'select', options: ['0–2 months', '2–5 months', '6–12 months', '12+ months'] },
       { id: 'pitch_deck_url',         required: true,  label: 'Pitch deck', hint: 'Upload a PDF or paste a link (Google Drive, Dropbox, Docsend…). Make sure it\'s not password protected.', type: 'file-url', placeholder: 'https://...' },
@@ -184,6 +198,7 @@ function isFieldVisible(f: FieldDef, answers: Record<string, unknown>): boolean 
   const { value, operator = 'eq' } = f.condition;
   if (operator === 'not_eq') return v !== undefined && v !== null && v !== '' && v !== value;
   if (operator === 'array_has_other') return Array.isArray(v) && v.some(item => item !== value);
+  if (operator === 'value_in') return Array.isArray(value) && value.includes(v);
   return v === value;
 }
 

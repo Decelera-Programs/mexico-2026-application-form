@@ -41,7 +41,8 @@ const T_WHY_NOW: Record<string, string> = {
 };
 
 const T_TEAM_MILESTONE: Record<string, string> = {
-  'Serial founder, exit >$10M':                   'Serial founder exit +$10M',
+  'Serial founder, exit >$30M':                   'Serial founder exit +$30M',
+  'Serial founder, exit $10M–$30M':               'Serial founder exit $10M-$30M',
   'Serial founder, exit <$10M':                   'Serial founder exit -$10M',
   'Serial founder, no exit':                      'Serial founder no exit',
   'Early employee (<20) at a unicorn / scale-up': 'Early employee Unicorn-Scaleup',
@@ -88,9 +89,9 @@ const T_CHURN: Record<string, string> = {
 };
 
 const T_ACQ_CHANNEL: Record<string, string> = {
-  '>80% organic — word-of-mouth / SEO / loops': '>80% come via word-of-mouth, SEO, or organic loops.',
-  '50–80% organic, rest paid':                  '50-80% organic, the rest is paid/outbound',
-  '<50% organic — heavy ads / sales':           '<50% organic; we rely heavily on Ads/Sales teams.',
+  'Clients mostly come to us — word-of-mouth, referrals, inbound, SEO': 'Clients mostly come to us — word-of-mouth, referrals, inbound, SEO',
+  'A mix — some inbound, but we actively chase and/or pay for the rest': 'A mix — some inbound, but we actively chase and/or pay for the rest',
+  'We mostly go get them — outbound sales and paid acquisition':          'We mostly go get them — outbound sales and paid acquisition',
 };
 
 

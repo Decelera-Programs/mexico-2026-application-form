@@ -62,7 +62,8 @@ const WHY_NOW: Record<string, number> = {
 };
 
 const TEAM_MILESTONE: Record<string, number> = {
-  'Serial founder, exit >$10M':                   15,
+  'Serial founder, exit >$30M':                   15,
+  'Serial founder, exit $10M–$30M':               12,
   'Serial founder, exit <$10M':                   10,
   'Serial founder, no exit':                       7,
   'Early employee (<20) at a unicorn / scale-up':  7,
@@ -101,9 +102,9 @@ const CHURN: Record<string, number> = {
 };
 
 const ACQ_CHANNEL: Record<string, number> = {
-  '>80% organic — word-of-mouth / SEO / loops': 5,
-  '50–80% organic, rest paid':                  0,
-  '<50% organic — heavy ads / sales':           0,
+  'Clients mostly come to us — word-of-mouth, referrals, inbound, SEO': 5,
+  'A mix — some inbound, but we actively chase and/or pay for the rest': 0,
+  'We mostly go get them — outbound sales and paid acquisition':          0,
 };
 
 // ── Main scoring function ─────────────────────────────────────────────────────
@@ -161,7 +162,7 @@ export function scoreAnswers(a: Record<string, unknown>): ScoreResult {
 
   // Q23 Acquisition channel
   tractionScore += single(ACQ_CHANNEL, a.acquisition_channel);
-  if (a.acquisition_channel === '>80% organic — word-of-mouth / SEO / loops')
+  if (a.acquisition_channel === 'Clients mostly come to us — word-of-mouth, referrals, inbound, SEO')
     green.push('🟢 >80% organic acquisition');
 
   // ── Equity flags ──────────────────────────────────────────────────────────
