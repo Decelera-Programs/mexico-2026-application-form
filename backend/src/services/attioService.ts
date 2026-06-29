@@ -89,9 +89,9 @@ const T_CHURN: Record<string, string> = {
 };
 
 const T_ACQ_CHANNEL: Record<string, string> = {
-  'Clients mostly come to us — word-of-mouth, referrals, inbound, SEO': 'Clients mostly come to us — word-of-mouth, referrals, inbound, SEO',
-  'A mix — some inbound, but we actively chase and/or pay for the rest': 'A mix — some inbound, but we actively chase and/or pay for the rest',
-  'We mostly go get them — outbound sales and paid acquisition':          'We mostly go get them — outbound sales and paid acquisition',
+  'Clients mostly come to us — word-of-mouth, referrals, inbound, SEO': 'Clients mostly come to us - word-of-mouth, referrals, inbound, SEO',
+  'A mix — some inbound, but we actively chase and/or pay for the rest': 'A mix - some inbound, but we actively chase and/or pay for the rest',
+  'We mostly go get them — outbound sales and paid acquisition':          'We mostly go get them - outbound sales and paid acquisition',
 };
 
 
