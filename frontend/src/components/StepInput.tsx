@@ -349,10 +349,19 @@ export function StepInput({ step, onSubmit, disabled }: InputProps) {
   const showPicker = trimmed.startsWith('/') && !isKnownCommand(trimmed);
   const isUnknownCommand = trimmed.startsWith('/') && !isKnownCommand(trimmed) && !COMMAND_DEFS.some(c => c.cmd.startsWith(trimmed.toLowerCase()));
   const isInvalidNumber = step.type === 'number' && trimmed !== '' && !isKnownCommand(trimmed) && isNaN(Number(trimmed));
-  const submitDisabled = disabled || isInvalidNumber || isUnknownCommand || (step.required ? !trimmed : false);
+  const isInvalidUrl = step.type === 'url' && trimmed !== '' && !isKnownCommand(trimmed) && (() => {
+    try {
+      const u = new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`);
+      const host = u.hostname.replace(/^www\./, '').toLowerCase();
+      return !host.includes('.');
+    } catch { return true; }
+  })();
+  const submitDisabled = disabled || isInvalidNumber || isInvalidUrl || isUnknownCommand || (step.required ? !trimmed : false);
   const hint = isUnknownCommand
     ? `Comando no reconocido. Disponibles: ${KNOWN_COMMANDS.join(', ')}`
-    : isInvalidNumber ? 'Escribe un número válido' : null;
+    : isInvalidNumber ? 'Escribe un número válido'
+    : isInvalidUrl ? 'Introduce una URL válida, ej: https://tuapp.com'
+    : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, position: 'relative' }}>

@@ -49,6 +49,15 @@
       "placeholder": "El problema que resuelves...",
       "required": true,
       "maxLength": 500,
+      "nextStep": "company_website"
+    },
+
+    "company_website": {
+      "id": "company_website",
+      "type": "url",
+      "question": "¿Cuál es la web de vuestra empresa?",
+      "placeholder": "https://",
+      "required": false,
       "nextStep": "demo_url"
     },
 

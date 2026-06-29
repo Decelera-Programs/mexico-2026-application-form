@@ -225,19 +225,31 @@ async function upsertCompany(
         body: JSON.stringify({ data: { values: { name: txt(name), domains: [{ domain }] } } }),
       }
     );
-    if (!r.ok) return r;
-    return { ok: true, data: { id: r.data.data.id.record_id } };
+    if (r.ok) return { ok: true, data: { id: r.data.data.id.record_id } };
+
+    // Upsert failed (e.g. domain managed by Attio enrichment) — find the existing record
+    console.warn(`[Attio] company upsert by domain failed, searching existing: ${r.error}`);
+    const searchR = await attioFetch<{ data: Array<{ id: { record_id: string } }> }>(
+      '/objects/companies/records/query',
+      {
+        method: 'POST',
+        body: JSON.stringify({ filter: { domains: { domain: { '$eq': domain } } } }),
+      }
+    );
+    if (searchR.ok && searchR.data.data.length > 0) {
+      return { ok: true, data: { id: searchR.data.data[0].id.record_id } };
+    }
+
+    return r; // return original error if no existing record found either
   }
 
-  const r = await attioFetch<{ data: { id: { record_id: string } } }>(
-    '/objects/companies/records?matching_attribute=name',
-    {
-      method: 'PUT',
-      body: JSON.stringify({ data: { values: { name: txt(name) } } }),
-    }
+  // No domain available — create without matching
+  const createR = await attioFetch<{ data: { id: { record_id: string } } }>(
+    '/objects/companies/records',
+    { method: 'POST', body: JSON.stringify({ data: { values: { name: txt(name) } } }) }
   );
-  if (!r.ok) return r;
-  return { ok: true, data: { id: r.data.data.id.record_id } };
+  if (!createR.ok) return createR;
+  return { ok: true, data: { id: createR.data.data.id.record_id } };
 }
 
 // ── Step 3: Link Person → Company ───────────────────────────────────────────
@@ -446,7 +458,7 @@ export async function syncSessionToAttio(
 
   const companyR = await upsertCompany(
     String(answers.startup_name ?? 'Unnamed startup'),
-    answers.demo_url ? String(answers.demo_url) : undefined
+    answers.company_website ? String(answers.company_website) : undefined
   );
   if (!companyR.ok) return companyR;
   const companyId = companyR.data.id;
