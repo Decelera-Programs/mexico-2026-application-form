@@ -3,7 +3,6 @@
  * Based strictly on Application_Form_Menorca2026_Spec_v2 explicit flags only.
  *
  * Green flags (explicitly marked "green" / "GREEN" in spec):
- *   Q6  Data moat or network effects
  *   Q22 Churn <2%
  *   Q23 >80% organic acquisition
  *   Q27 Founders >80% equity
@@ -18,7 +17,7 @@
  * Block score = peak per question (max of selected options, never sum).
  *
  * Max points: 85 pts
- *   Product  20  (Q6 defensibility 10 + Q7 third-party 10)
+ *   Product  10  (Q7 third-party 10)
  *   Market   10  (Q11 tailwind 10)
  *   Team     35  (Q15 milestone 15 + Q17 sector exp 10 + Q18 sig milestone 10)
  *   Traction 20  (Q20 MoM 10 + Q22 churn 5 + Q23 acquisition 5)
@@ -52,21 +51,7 @@ function includes(val: unknown, item: string): boolean {
 
 // ── Scoring tables ────────────────────────────────────────────────────────────
 
-const DEFENSIBILITY: Record<string, number> = {
-  'Data moat — proprietary/exclusive/longitudinal data improving with use': 10,
-  'Network effects':                           10,
-  'Deep integration / high switching costs':   5,
-  'Hard-to-replicate technical edge':          5,
-  'Regulation / licenses':                     5,
-  'Brand / GTM':                               0,
-  'None clearly yet':                          0,
-};
-
-const THIRD_PARTY: Record<string, number> = {
-  'Independent — used for non-core tasks, the core is ours':               10,
-  'Hybrid — we enhance third-party models with our own data / fine-tuning': 5,
-  'Dependent — a superior layer / UX on top of existing APIs':               0,
-};
+const THIRD_PARTY: Record<string, number> = { 'false': 10, 'true': 0 };
 
 const WHY_NOW: Record<string, number> = {
   'New mandated compliance — buyers now legally forced to adopt':            10,
@@ -133,15 +118,9 @@ export function scoreAnswers(a: Record<string, unknown>): ScoreResult {
 
   // ── Product (20 pts) ──────────────────────────────────────────────────────
 
-  // Q6 Defensibility — PEAK (multiselect)
-  productScore += peak(DEFENSIBILITY, a.defensibility);
-  if (includes(a.defensibility, 'Data moat — proprietary/exclusive/longitudinal data improving with use') ||
-      includes(a.defensibility, 'Network effects'))
-    green.push('🟢 Data moat or network effects — strongest defensibility signal');
-
   // Q7 Third-party dependence
   productScore += single(THIRD_PARTY, a.third_party_dependence);
-  if (a.third_party_dependence === 'Dependent — a superior layer / UX on top of existing APIs')
+  if (a.third_party_dependence === true)
     yellow.push('🟡 Dependent on 3rd-party APIs — wrapper risk');
 
   // ── Market (10 pts) ───────────────────────────────────────────────────────

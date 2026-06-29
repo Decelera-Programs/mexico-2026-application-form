@@ -31,11 +31,6 @@ const T_DEFENSIBILITY: Record<string, string> = {
   'None clearly yet':                             'None yet',
 };
 
-const T_THIRD_PARTY: Record<string, string> = {
-  'Independent — used for non-core tasks, the core is ours':              "Independent: We use them for non-core tasks, but our 'magic' is ours.",
-  'Hybrid — we enhance third-party models with our own data / fine-tuning': 'Hybrid: We enhance 3rd party models with our own proprietary datasets/fine-tuning.',
-  'Dependent — a superior layer / UX on top of existing APIs':            'Dependent: We provide a superior layer/UX on top of existing powerful APIs.',
-};
 
 const T_WHY_NOW: Record<string, string> = {
   'New mandated compliance — buyers now legally forced to adopt': 'New Mandated Compliance/Reporting: (Companies are now legally forced to buy a solution like yours)',
@@ -309,11 +304,13 @@ async function createDeal(
   addText('problem',          a.problem);
   addText('demo',             a.demo_url);
   addText('the_secret',       a.industry_insight);
-  addOpts('defensibility_4',  T_DEFENSIBILITY,  a.defensibility);      // multiselect
-  addOpt ('uniqueness_ip',    T_THIRD_PARTY,    a.third_party_dependence);
+  addText('defensibility_explanation', a.defensibility);
+  addText('dependance_from_3rds_explanation', a.third_party_explanation);
   addOptsDirect('sector',     a.sector);                                // multiselect, exact Attio titles
-  addOptsDirect('business_model', a.business_model);                    // multiselect, exact Attio titles
+  addOptsDirect('business_model',  a.business_model);
+  addOptsDirect('business_target', a.business_target);
   addNum ('potential_clients', a.potential_clients);
+  addNum ('acv',               a.acv);
   addOpt ('external_tailwind', T_WHY_NOW,        a.why_now_select);
   addText('why_now_validation', a.why_now_validation);
 
