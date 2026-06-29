@@ -101,7 +101,7 @@ const BLOCKS: BlockDef[] = [
   {
     id: 'founders',
     label: 'The founders',
-    description: 'Who\'s behind it? This block is worth 35 points.',
+    description: 'Who\'s behind it?',
     fields: [
       { id: 'technical_cofounder',  required: true,  label: 'Do you have a technical co-founder?', type: 'boolean' },
       { id: 'number_of_founders',   required: true,  label: 'How many full-time founders are on the team?', type: 'select', options: ['1', '2', '3', '4', '4+'] },
@@ -139,7 +139,7 @@ const BLOCKS: BlockDef[] = [
   {
     id: 'traction',
     label: 'Traction',
-    description: 'Numbers, not narrative. 30 points.',
+    description: 'Numbers, not narrative.',
     fields: [
       { id: 'north_star',          required: true, label: 'Describe your traction.', type: 'textarea', maxLength: 600 },
       { id: 'mom_growth',          required: true, label: 'Average MoM growth over the last 3 months?',           type: 'select', options: ['>20%', '10–20%', '5–10%', '<5% or N/A — building / pivoting'] },
