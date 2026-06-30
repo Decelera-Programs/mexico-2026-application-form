@@ -22,7 +22,7 @@ interface FieldDef {
 interface BlockDef {
   id: string;
   label: string;
-  description: string;
+  description?: string;
   fields: FieldDef[];
 }
 
@@ -34,7 +34,6 @@ const BLOCKS: BlockDef[] = [
   {
     id: 'identity',
     label: 'Before you start',
-    description: 'Who you are and what you\'re building.',
     fields: [
       { id: 'startup_name',      label: 'What\'s the name of your startup?', type: 'text',  required: true,  placeholder: 'Your startup name' },
       { id: 'founder_full_name', label: 'Your full name',                    type: 'text',  required: true,  placeholder: 'First and last name' },
@@ -44,7 +43,6 @@ const BLOCKS: BlockDef[] = [
   {
     id: 'company',
     label: 'The company',
-    description: 'Signal-first. Market and product insight.',
     fields: [
       { id: 'problem',          label: 'In three lines max, what core problem are you solving?', type: 'textarea', required: false, maxLength: 500 },
       { id: 'company_website',  label: 'Company website', hint: 'We use this to match your company in our CRM. Skip if you don\'t have one yet.', type: 'url', required: false, placeholder: 'https://' },
@@ -79,7 +77,6 @@ const BLOCKS: BlockDef[] = [
   {
     id: 'founders',
     label: 'The founders',
-    description: 'Who\'s behind it?',
     fields: [
       { id: 'number_of_founders', required: false, label: 'How many full-time founders are on the team?', type: 'select', options: ['1', '2', '3', '4', '4+'] },
 
@@ -111,7 +108,6 @@ const BLOCKS: BlockDef[] = [
   {
     id: 'traction',
     label: 'Traction',
-    description: 'Numbers, not narrative.',
     fields: [
       { id: 'north_star', required: false, label: 'Describe your traction.', hint: 'Revenue, users, growth, retention — and what\'s driving it. Concrete numbers over adjectives.', type: 'textarea', maxLength: 600 },
       {
@@ -135,7 +131,6 @@ const BLOCKS: BlockDef[] = [
   {
     id: 'equity',
     label: 'Equity & the round',
-    description: 'Legal structure and fundraising status. Hard stops evaluated on submit.',
     fields: [
       { id: 'incorporation_location', required: false,  label: 'Where is your company incorporated?', type: 'select', options: ['Mexico', 'Colombia', 'Chile', 'Argentina', 'Peru', 'Uruguay', 'Central America & Caribbean', 'Brazil', 'Cayman Islands', 'LATAM', 'U.S.A.', 'E.U.', 'Other'] },
       { id: 'operations_location', required: false, label: 'Where does the company operate? Select all that apply.', type: 'multiselect', options: ['Mexico', 'Colombia', 'Chile', 'Argentina', 'Peru', 'Uruguay', 'Central America & Caribbean', 'Brazil', 'Other LATAM', 'USA', 'Europe', 'Other'] },
@@ -152,7 +147,6 @@ const BLOCKS: BlockDef[] = [
   {
     id: 'wrap',
     label: 'Wrap-up',
-    description: 'Almost done. One more minute.',
     fields: [
       { id: 'how_heard',            required: false,  label: 'How did you hear about us?', type: 'select', options: ['LinkedIn', 'Referral', 'Event', 'Press', 'Other'] },
       { id: 'referral_name',        required: false,  label: 'Who referred you?', type: 'text', placeholder: 'Name of the person who referred you', condition: { field: 'how_heard', value: 'Referral' } },
@@ -976,9 +970,7 @@ export default function App() {
                       {block.label}
                     </h2>
                   </div>
-                  <p style={{ margin: '0 0 0 40px', fontFamily: 'var(--font-body)', fontSize: 14, color: C.cloud, lineHeight: 1.6 }}>
-                    {block.description}
-                  </p>
+                  {block.description && <p style={{ margin: '0 0 0 40px', fontFamily: 'var(--font-body)', fontSize: 14, color: C.cloud, lineHeight: 1.6 }}>{block.description}</p>}
                   <div style={{ marginTop: 20, height: 1, background: 'rgba(45,56,82,0.10)' }} />
                 </div>
 
