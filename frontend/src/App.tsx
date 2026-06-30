@@ -121,7 +121,7 @@ const BLOCKS: BlockDef[] = [
     label: 'Traction',
     description: 'Numbers, not narrative.',
     fields: [
-      { id: 'north_star',          required: true, label: 'Describe your traction.', type: 'textarea', maxLength: 600 },
+      { id: 'north_star', required: true, label: 'Describe your traction.', hint: 'Revenue, users, growth, retention — and what\'s driving it. Concrete numbers over adjectives.', type: 'textarea', maxLength: 600 },
       {
         id: 'most_significant_milestone', required: true,
         label: 'Since launch, what is your most significant milestone? Select all that apply.',
