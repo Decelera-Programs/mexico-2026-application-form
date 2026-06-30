@@ -166,7 +166,7 @@ const BLOCKS: BlockDef[] = [
       { id: 'referral_name',        required: true,  label: 'Who referred you?', type: 'text', placeholder: 'Name of the person who referred you', condition: { field: 'how_heard', value: 'Referral' } },
       { id: 'network_contact',      required: true,  label: 'Do you know anyone in the Decelera network?', hint: 'A mentor, portfolio founder or LP.', type: 'boolean' },
       { id: 'network_contact_name', required: true,  label: 'Who is it and what\'s your relationship?', type: 'text', placeholder: 'e.g. María García — portfolio mentor', condition: { field: 'network_contact', value: true } },
-      { id: 'additional_comments',  required: true,  label: 'What challenge would you like to work on at Decelera?', type: 'textarea', maxLength: 800 },
+      { id: 'additional_comments',  required: true,  label: 'During the 7 days at Decelera teams focus on solving their main challenge. What is your current main challenge?', type: 'textarea', maxLength: 800 },
     ],
   },
 ];
