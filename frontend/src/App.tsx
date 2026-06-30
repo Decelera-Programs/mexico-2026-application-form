@@ -957,6 +957,12 @@ export default function App() {
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', background: C.bg }}>
         <div style={{ maxWidth: 700, margin: '0 auto', padding: '56px 40px 80px' }}>
 
+          <div style={{ marginBottom: 48, padding: '20px 24px', background: '#fff', border: `1px solid ${C.inputBorder}`, borderRadius: 12 }}>
+            <p style={{ margin: 0, fontFamily: 'var(--font-body)', fontSize: 14, color: C.cloud, lineHeight: 1.7 }}>
+              Applications are reviewed on a rolling basis — the earlier you apply, the earlier you hear back. Submit by <strong style={{ color: C.night }}>July 27 (8pm CST)</strong> for a decision by mid-August. Your progress saves automatically; continue anytime.
+            </p>
+          </div>
+
           {BLOCKS.map((block, bIdx) => {
             const visibleFields = block.fields.filter(f => isFieldVisible(f, answers));
             return (
