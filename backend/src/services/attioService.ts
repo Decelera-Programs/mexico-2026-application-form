@@ -368,14 +368,14 @@ const ANALYSTS_NOT_QUALIFIED = ['Alejandro', 'Diego', 'Carlota'];
 function randomFrom(arr: string[]): string { return arr[Math.floor(Math.random() * arr.length)]; }
 
 const HARD_STOP_LABELS: Record<string, string> = {
-  brazil_incorporation: '🔴 Hard stop: Company incorporated in Brazil',
-  no_latam_operation:   '🔴 Hard stop: No LATAM operations',
-  pre_2023:             '🔴 Hard stop: Company started operating before 2023',
-  low_equity:           '🔴 Hard stop: Founders hold <40% equity',
-  beyond_seed:          '🔴 Hard stop: Raised >$2.5M (beyond seed)',
-  high_burn:            '🔴 Hard stop: Monthly burn >$100k',
-  long_runway:          '🔴 Hard stop: Runway 12+ months — not actively raising',
-  high_valuation:       '🔴 Hard stop: Pre-money valuation >$10M',
+  brazil_incorporation: '🔴 Company incorporated in Brazil',
+  no_latam_operation:   '🔴 No LATAM operations',
+  pre_2023:             '🔴 Company started operating before 2023',
+  low_equity:           '🔴 Founders hold <40% equity',
+  beyond_seed:          '🔴 Raised >$2.5M (beyond seed)',
+  high_burn:            '🔴 Monthly burn >$100k',
+  long_runway:          '🔴 Runway 12+ months — not actively raising',
+  high_valuation:       '🔴 Pre-money valuation >$10M',
 };
 
 async function addDealToLatamList(
@@ -385,7 +385,7 @@ async function addDealToLatamList(
   hardStopReason?: string | null
 ): Promise<AttioResult<void>> {
   const today = new Date().toISOString().split('T')[0];
-  const hardStopLabel = hardStopReason ? (HARD_STOP_LABELS[hardStopReason] ?? `🔴 Hard stop: ${hardStopReason}`) : null;
+  const hardStopLabel = hardStopReason ? (HARD_STOP_LABELS[hardStopReason] ?? `🔴 ${hardStopReason}`) : null;
 
   const entryValues: Record<string, unknown> = {
     fund:              opt('LATAM'),
