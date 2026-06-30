@@ -45,7 +45,7 @@ const BLOCKS: BlockDef[] = [
     label: 'The company',
     fields: [
       { id: 'problem',          label: 'In three lines max, what core problem are you solving?', type: 'textarea', required: false, maxLength: 500 },
-      { id: 'company_website',  label: 'Company website', hint: 'We use this to match your company in our CRM. Skip if you don\'t have one yet.', type: 'url', required: false, placeholder: 'https://' },
+      { id: 'company_website',  label: 'Company website', type: 'url', required: true, placeholder: 'https://' },
       { id: 'demo_url',         label: 'Pick one URL that best shows what you\'re building.', hint: 'Demo, product, MVP or landing page.', type: 'url', required: false, placeholder: 'https://' },
       { id: 'industry_insight', label: 'Tell us something about your industry that big incumbents don\'t understand or ignore.', hint: '1–2 sentences. Your strongest insight revealer as a founder.', type: 'textarea', required: false, maxLength: 400 },
       { id: 'defensibility', required: false, label: 'A competitor raises $100M tomorrow to kill your startup. What\'s the one thing they can\'t buy or copy in 12 months?', type: 'textarea', maxLength: 400 },
