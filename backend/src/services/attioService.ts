@@ -317,6 +317,9 @@ async function createDeal(
 
   // ── Block 3: The founders
   addOptDirect('number_of_founders',        a.number_of_founders);
+  const linkedins = [a.founder_1_linkedin, a.founder_2_linkedin, a.founder_3_linkedin, a.founder_4_linkedin]
+    .filter((v): v is string => typeof v === 'string' && v.trim() !== '');
+  if (linkedins.length) v['linkedin_1'] = txt(linkedins.join(', '));
   if (a.has_technical_cofounder !== undefined && a.has_technical_cofounder !== null)
     v['full_time_cto'] = opt(a.has_technical_cofounder ? 'Yes' : 'No');
   addOptDirect('who_builds_product',        a.product_builder);
