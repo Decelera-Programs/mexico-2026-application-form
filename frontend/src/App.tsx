@@ -150,9 +150,9 @@ const BLOCKS: BlockDef[] = [
       { id: 'company_start_year',     required: true,  label: 'What year did the company start operating?', type: 'year', placeholder: '20XX' },
       { id: 'founding_equity',        required: true,  label: 'How much equity is held by the founding team, including the option pool?', type: 'select', options: ['>80%', '60–80%', '40–60%', '<40%'] },
       { id: 'total_raised',           required: true,  label: 'Total raised to date, excluding the current round.', hint: 'Equity, notes, SAFEs.', type: 'select', options: ['< $500k', '$500k - $1.5M', '$1.5M - $2.5M', '> $2.5M'] },
-      { id: 'round_size',             required: true,  label: 'What is the total size of your current round? ($)', type: 'number', placeholder: 'e.g. 1000000' },
+      { id: 'round_size',             required: true,  label: 'What is the total size of your current round? ($M)', hint: 'Enter in millions — e.g. 1.5 for $1.5M', type: 'number', placeholder: 'e.g. 1.5' },
       { id: 'round_committed',        required: true,  label: 'How much of the current round is already committed?', type: 'select', options: ['0–25%', '25–50%', '50–75%', '75%+'] },
-      { id: 'pre_money_valuation',    required: true,  label: 'What is the pre-money valuation (or cap)? ($)', type: 'number', placeholder: 'e.g. 5000000' },
+      { id: 'pre_money_valuation',    required: true,  label: 'What is the pre-money valuation (or cap)? ($M)', hint: 'Enter in millions — e.g. 5 for $5M', type: 'number', placeholder: 'e.g. 5' },
       { id: 'runway',                 required: true,  label: 'What is your current runway?', type: 'select', options: ['0–2 months', '2–5 months', '6–12 months', '12+ months'] },
       { id: 'pitch_deck_url',         required: true,  label: 'Pitch deck', hint: 'Upload a PDF or paste a link (Google Drive, Dropbox, Docsend…). Make sure it\'s not password protected.', type: 'file-url', placeholder: 'https://...' },
     ],
@@ -222,8 +222,11 @@ function validateFieldValue(field: FieldDef, v: unknown): string | null {
     catch { return 'Please enter a valid URL (e.g. https://yourstartup.com).'; }
   }
   if (field.type === 'number') {
-    if (isNaN(Number(s)) || s.trim() === '')
+    const n = Number(s);
+    if (isNaN(n) || s.trim() === '')
       return 'Please enter a valid number.';
+    if (['round_size', 'pre_money_valuation'].includes(field.id) && n >= 1000)
+      return 'Enter the amount in millions (e.g. 5 for $5M) — max 999.';
   }
   if (field.type === 'year') {
     if (!/^20\d{2}$/.test(s.trim()))
@@ -301,9 +304,14 @@ function NumberField({ field, value, onChange, onBlur, error }: FieldInputProps)
   return (
     <FieldWrapper field={field} error={error}>
       <input
-        type="text" inputMode="numeric"
+        type="text" inputMode="decimal"
         value={raw}
-        onChange={e => { const v = e.target.value.replace(/[^0-9]/g, ''); onChange(v === '' ? '' : Number(v)); }}
+        onChange={e => {
+          const v = e.target.value.replace(',', '.').replace(/[^0-9.]/g, '');
+          const dotIdx = v.indexOf('.');
+          const clean = dotIdx === -1 ? v : v.slice(0, dotIdx + 1) + v.slice(dotIdx + 1).replace(/\./g, '');
+          onChange(clean);
+        }}
         placeholder={field.placeholder}
         onFocus={() => setFocused(true)}
         onBlur={() => { setFocused(false); onBlur?.(); }}
@@ -872,7 +880,8 @@ export default function App() {
   // ── Complete / Declined ─────────────────────────────────────────────────────
 
   if (appState === 'complete' || appState === 'declined') {
-    const fmt = (n: unknown) => n ? `$${Number(n).toLocaleString('en-US')}` : '—';
+    const fmt  = (n: unknown) => n ? `$${Number(n).toLocaleString('en-US')}` : '—';
+    const fmtM = (n: unknown) => { const v = Number(n); return (!n || isNaN(v)) ? '—' : `$${v}M`; };
     const arr = (v: unknown) => Array.isArray(v) && v.length ? (v as string[]).join(', ') : (v as string | undefined) ?? '—';
     const str = (v: unknown) => (v as string | undefined) ?? '—';
 
@@ -888,8 +897,8 @@ export default function App() {
       ['Started operating',str(answers.company_start_year)],
       ['Founding equity',  str(answers.founding_equity)],
       ['Total raised',     str(answers.total_raised)],
-      ['Current round',    fmt(answers.round_size)],
-      ['Pre-money val.',   fmt(answers.pre_money_valuation)],
+      ['Current round',    fmtM(answers.round_size)],
+      ['Pre-money val.',   fmtM(answers.pre_money_valuation)],
       ['Monthly burn',     str(answers.net_burn)],
       ['Runway',           str(answers.runway)],
       ['How heard',        str(answers.how_heard)],
