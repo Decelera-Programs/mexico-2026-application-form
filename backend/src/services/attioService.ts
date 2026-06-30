@@ -316,13 +316,12 @@ async function createDeal(
   addText('why_now_validation', a.why_now_validation);
 
   // ── Block 3: The founders
-  if (a.technical_cofounder !== undefined && a.technical_cofounder !== null)
-    v['full_time_cto'] = opt(a.technical_cofounder ? 'Yes' : 'No');
   addOptDirect('number_of_founders',        a.number_of_founders);
-  addText('linkedin_1',                     a.founder_linkedin);
+  if (a.has_technical_cofounder !== undefined && a.has_technical_cofounder !== null)
+    v['full_time_cto'] = opt(a.has_technical_cofounder ? 'Yes' : 'No');
+  addOptDirect('who_builds_product',        a.product_builder);
   addOpts('collective_milestones',          T_TEAM_MILESTONE, a.team_milestone);  // multiselect
   addText('relevant_experience_explanation', a.team_milestone_detail);
-  addOpt ('experience_in_sector',           T_SECTOR_EXP,    a.sector_experience);
   addOpts('most_significant_milestone_6',   T_MILESTONE,     a.most_significant_milestone); // multiselect
 
   // ── Block 4: Traction

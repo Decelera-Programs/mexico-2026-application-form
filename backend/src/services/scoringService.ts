@@ -132,7 +132,7 @@ export function scoreAnswers(a: Record<string, unknown>): ScoreResult {
   // ── Team (35 pts) ─────────────────────────────────────────────────────────
 
   // Q13 Technical co-founder
-  if (a.technical_cofounder === false)
+  if (a.has_technical_cofounder === false)
     yellow.push('🟡 No technical co-founder');
 
   // Q15 Collective milestone — PEAK (multiselect)

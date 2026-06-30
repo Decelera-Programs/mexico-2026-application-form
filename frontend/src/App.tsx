@@ -83,21 +83,13 @@ const BLOCKS: BlockDef[] = [
     fields: [
       { id: 'number_of_founders', required: true, label: 'How many full-time founders are on the team?', type: 'select', options: ['1', '2', '3', '4', '4+'] },
 
-      { id: 'founder_1_linkedin',   required: true, label: 'Founder 1 — LinkedIn profile', type: 'url', placeholder: 'https://linkedin.com/in/...' },
-      { id: 'founder_1_tech',       required: true, label: 'Founder 1 — Is it a tech co-founder?', type: 'boolean' },
-      { id: 'founder_1_sector_exp', required: true, label: 'Founder 1 — Years of experience in this specific sector?', type: 'select', options: ['0–2 years', '2–5 years', '6–12 years', '12+ years'] },
+      { id: 'founder_1_role', required: true, label: 'Founder 1 — Primary role', type: 'select', options: ['Technical', 'Product', 'Commercial', 'Operations', 'Finance', 'Other'] },
+      { id: 'founder_2_role', required: true, label: 'Founder 2 — Primary role', type: 'select', options: ['Technical', 'Product', 'Commercial', 'Operations', 'Finance', 'Other'], condition: { field: 'number_of_founders', value: ['2','3','4','4+'], operator: 'value_in' } },
+      { id: 'founder_3_role', required: true, label: 'Founder 3 — Primary role', type: 'select', options: ['Technical', 'Product', 'Commercial', 'Operations', 'Finance', 'Other'], condition: { field: 'number_of_founders', value: ['3','4','4+'], operator: 'value_in' } },
+      { id: 'founder_4_role', required: true, label: 'Founder 4 — Primary role', type: 'select', options: ['Technical', 'Product', 'Commercial', 'Operations', 'Finance', 'Other'], condition: { field: 'number_of_founders', value: ['4','4+'], operator: 'value_in' } },
 
-      { id: 'founder_2_linkedin',   required: true, label: 'Founder 2 — LinkedIn profile', type: 'url', placeholder: 'https://linkedin.com/in/...', condition: { field: 'number_of_founders', value: ['2','3','4','4+'], operator: 'value_in' } },
-      { id: 'founder_2_tech',       required: true, label: 'Founder 2 — Is it a tech co-founder?', type: 'boolean', condition: { field: 'number_of_founders', value: ['2','3','4','4+'], operator: 'value_in' } },
-      { id: 'founder_2_sector_exp', required: true, label: 'Founder 2 — Years of experience in this specific sector?', type: 'select', options: ['0–2 years', '2–5 years', '6–12 years', '12+ years'], condition: { field: 'number_of_founders', value: ['2','3','4','4+'], operator: 'value_in' } },
-
-      { id: 'founder_3_linkedin',   required: true, label: 'Founder 3 — LinkedIn profile', type: 'url', placeholder: 'https://linkedin.com/in/...', condition: { field: 'number_of_founders', value: ['3','4','4+'], operator: 'value_in' } },
-      { id: 'founder_3_tech',       required: true, label: 'Founder 3 — Is it a tech co-founder?', type: 'boolean', condition: { field: 'number_of_founders', value: ['3','4','4+'], operator: 'value_in' } },
-      { id: 'founder_3_sector_exp', required: true, label: 'Founder 3 — Years of experience in this specific sector?', type: 'select', options: ['0–2 years', '2–5 years', '6–12 years', '12+ years'], condition: { field: 'number_of_founders', value: ['3','4','4+'], operator: 'value_in' } },
-
-      { id: 'founder_4_linkedin',   required: true, label: 'Founder 4 — LinkedIn profile', type: 'url', placeholder: 'https://linkedin.com/in/...', condition: { field: 'number_of_founders', value: ['4','4+'], operator: 'value_in' } },
-      { id: 'founder_4_tech',       required: true, label: 'Founder 4 — Is it a tech co-founder?', type: 'boolean', condition: { field: 'number_of_founders', value: ['4','4+'], operator: 'value_in' } },
-      { id: 'founder_4_sector_exp', required: true, label: 'Founder 4 — Years of experience in this specific sector?', type: 'select', options: ['0–2 years', '2–5 years', '6–12 years', '12+ years'], condition: { field: 'number_of_founders', value: ['4','4+'], operator: 'value_in' } },
+      { id: 'has_technical_cofounder', required: true, label: 'Is there a technical co-founder who can build and own the product themselves?', type: 'boolean' },
+      { id: 'product_builder', required: true, label: 'Who builds your core product today?', type: 'select', options: ['In-house', 'Mix', 'Primarily outsourced'] },
       {
         id: 'team_milestone', required: true,
         label: 'What is the team\'s most relevant collective milestone? Select all that apply.',
