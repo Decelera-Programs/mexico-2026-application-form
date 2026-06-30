@@ -375,7 +375,7 @@ const HARD_STOP_LABELS: Record<string, string> = {
   beyond_seed:          '🔴 Hard stop: Raised >$2.5M (beyond seed)',
   high_burn:            '🔴 Hard stop: Monthly burn >$100k',
   long_runway:          '🔴 Hard stop: Runway 12+ months — not actively raising',
-  low_valuation:        '🔴 Hard stop: Pre-money valuation <$10M',
+  high_valuation:       '🔴 Hard stop: Pre-money valuation >$10M',
 };
 
 async function addDealToLatamList(

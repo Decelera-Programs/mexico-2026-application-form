@@ -37,8 +37,8 @@ function evaluateHardStops(answers: Record<string, unknown>): HardStop | null {
     return { reason: 'long_runway', message: DECLINE('startups actively raising right now') };
   }
   const val = Number(answers.pre_money_valuation);
-  if (!isNaN(val) && val > 0 && val < 10_000_000) {
-    return { reason: 'low_valuation', message: DECLINE('companies with a pre-money valuation of $10M or above') };
+  if (!isNaN(val) && val > 10_000_000) {
+    return { reason: 'high_valuation', message: DECLINE('early-stage startups with a pre-money valuation of $10M or below') };
   }
   return null;
 }
