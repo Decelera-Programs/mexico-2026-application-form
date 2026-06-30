@@ -154,7 +154,7 @@ const BLOCKS: BlockDef[] = [
       { id: 'round_committed',        required: true,  label: 'How much of the current round is already committed?', type: 'select', options: ['0–25%', '25–50%', '50–75%', '75%+'] },
       { id: 'pre_money_valuation',    required: true,  label: 'What is the pre-money valuation (or cap)? ($M)', hint: 'Enter in millions — e.g. 5 for $5M', type: 'number', placeholder: 'e.g. 5' },
       { id: 'runway',                 required: true,  label: 'What is your current runway?', type: 'select', options: ['0–2 months', '2–5 months', '6–12 months', '12+ months'] },
-      { id: 'pitch_deck_url',         required: true,  label: 'Pitch deck', hint: 'Upload a PDF or paste a link (Google Drive, Dropbox, Docsend…). Make sure it\'s not password protected.', type: 'file-url', placeholder: 'https://...' },
+      { id: 'pitch_deck_url',         required: true,  label: 'Pitch deck', hint: 'Upload a PDF or paste a link (Google Drive, Dropbox, Docsend…). If password protected, share the password.', type: 'file-url', placeholder: 'https://...' },
     ],
   },
   {
