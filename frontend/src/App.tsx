@@ -604,11 +604,10 @@ function FieldInput(props: FieldInputProps) {
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 
-function Sidebar({ activeBlock, answers, isFinished, isDeclined, onBlockClick }: {
+function Sidebar({ activeBlock, answers, isFinished, onBlockClick }: {
   activeBlock: number;
   answers: Record<string, unknown>;
   isFinished: boolean;
-  isDeclined: boolean;
   onBlockClick: (idx: number) => void;
 }) {
   const allRequired = BLOCKS.flatMap(b => b.fields).filter(f => f.required);
@@ -910,7 +909,7 @@ export default function App() {
     return (
       <div style={{ display: 'flex', height: '100dvh' }}>
         {appState === 'complete' && <Confetti />}
-        <Sidebar activeBlock={BLOCKS.length} answers={answers} isFinished isDeclined={appState === 'declined'} onBlockClick={() => {}} />
+        <Sidebar activeBlock={BLOCKS.length} answers={answers} isFinished onBlockClick={() => {}} />
         <div style={{ flex: 1, overflowY: 'auto', background: C.bg, padding: '48px 32px' }}>
           <div style={{ maxWidth: 620, margin: '0 auto' }}>
             <h1 style={{ fontFamily: 'Taviraj, serif', fontWeight: 200, fontSize: 34, color: C.navy, margin: '0 0 6px', letterSpacing: '-0.01em' }}>
@@ -951,7 +950,6 @@ export default function App() {
         activeBlock={activeBlock}
         answers={answers}
         isFinished={isFinished}
-        isDeclined={false}
         onBlockClick={scrollToBlock}
       />
 
