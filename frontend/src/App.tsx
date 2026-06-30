@@ -623,7 +623,7 @@ function Sidebar({ activeBlock, answers, isFinished, isDeclined, onBlockClick }:
           Decelera Ventures
         </div>
         <div style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: '#fff', marginTop: 3, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-          {isFinished ? (isDeclined ? '✗ Not a fit right now' : '✓ Submitted') : 'Mexico 2026'}
+          {isFinished ? '✓ Submitted' : 'Mexico 2026'}
         </div>
       </div>
 
