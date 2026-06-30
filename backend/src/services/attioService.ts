@@ -338,11 +338,10 @@ async function createDeal(
   addNum ('constitution_year',    a.company_start_year);
   addOpt ('equity',               T_EQUITY,           a.founding_equity);
   addOpt ('raised',               T_RAISED,           a.total_raised);
-  if (a.round_size !== undefined && a.round_size !== null && a.round_size !== '')
-    addNum('raise', Number(a.round_size) * 1_000_000);
+  addNum ('raise',                a.round_size);
   addOpt ('stage_round',          T_ROUND_COMMITTED,  a.round_committed);
   if (a.pre_money_valuation !== undefined && a.pre_money_valuation !== null && a.pre_money_valuation !== '')
-    v['pre_money_valuation_7'] = txt(String(Number(a.pre_money_valuation) * 1_000_000));
+    v['pre_money_valuation_7'] = txt(String(a.pre_money_valuation));
   addOpt ('runway',               T_RUNWAY,           a.runway);
   addText('deck_url',             a.pitch_deck_url);
 
