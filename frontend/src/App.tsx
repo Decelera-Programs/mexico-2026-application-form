@@ -735,7 +735,10 @@ export default function App() {
           if (data) {
             if (data.session.status === 'completed') { setAppState('complete'); return; }
             setSessionId(savedId);
-            setAnswers(data.answers ?? {});
+            const backendAnswers = data.answers ?? {};
+            const localAnswers = JSON.parse(localStorage.getItem('decelera_mex26_answers') ?? '{}');
+            const restoredAnswers = Object.keys(backendAnswers).length > 0 ? backendAnswers : localAnswers;
+            setAnswers(restoredAnswers);
             setAppState('form');
             if (data.currentBlock) {
               const idx = BLOCKS.findIndex(b => b.id === data.currentBlock);
@@ -774,6 +777,12 @@ export default function App() {
 
   // Keep answersRef in sync for use in callbacks without stale closure issues
   useEffect(() => { answersRef.current = answers; }, [answers]);
+
+  // Instant localStorage backup on every answer change
+  useEffect(() => {
+    if (appState !== 'form') return;
+    localStorage.setItem('decelera_mex26_answers', JSON.stringify(answers));
+  }, [answers, appState]);
 
   // Save immediately when the visible block changes (user scrolled to a new section)
   useEffect(() => {
@@ -840,6 +849,7 @@ export default function App() {
     try {
       const result = await submitApplication(sessionId, answers);
       localStorage.removeItem('decelera_mex26_session_id');
+      localStorage.removeItem('decelera_mex26_answers');
       setAppState(result.isDeclined ? 'declined' : 'complete');
     } catch {
       setErrors({ __form: 'Something went wrong. Please try again.' });
