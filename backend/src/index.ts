@@ -42,6 +42,15 @@ const frontendDist = path.join(__dirname, '../../frontend/dist');
 app.use(express.static(frontendDist));
 app.get('*', (_req, res) => res.sendFile(path.join(frontendDist, 'index.html')));
 
+// Silently discard aborted requests (client disconnected mid-save)
+app.use((err: Error, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err.message === 'request aborted' || (err as { type?: string }).type === 'request.aborted') {
+    res.status(400).end();
+    return;
+  }
+  next(err);
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Backend running on port ${PORT}`);
   console.log(`   Environment: ${process.env.NODE_ENV ?? 'development'}`);
